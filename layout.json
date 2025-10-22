@@ -96,6 +96,7 @@
       "pages": [
         "api-reference/overview",
         "api-reference/authentication",
+        "api-reference/graphql",
         "api-reference/catalog",
         "api-reference/orders",
         "api-reference/inventory",
