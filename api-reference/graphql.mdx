@@ -1,0 +1,957 @@
+---
+title: 'GraphQL API (v2)'
+description: 'Modern GraphQL API for flexible queries and real-time data access to the MasonHub Order Management System'
+---
+
+# GraphQL API (v2)
+
+The MasonHub GraphQL API provides a modern, flexible interface for querying and mutating data in the Order Management System. It offers powerful features like nested queries, field selection, and type safety.
+
+<Note>
+The GraphQL API is available at `/api/v2/graphql` and provides access to orders, SKUs, inbound shipments, RMAs, accounts, and more.
+</Note>
+
+## Endpoint
+
+**Base URL**: `https://app.masonhub.co/api/v2/graphql`
+
+**Sandbox URL**: `https://sandbox.masonhub.co/api/v2/graphql`
+
+## Authentication
+
+All GraphQL requests require JWT Bearer token authentication in the Authorization header:
+
+```http
+Authorization: Bearer your_jwt_token_here
+Content-Type: application/json
+```
+
+## GraphQL Playground
+
+<Info>
+In development environments, an interactive GraphQL playground is available at `/play` to explore the schema and test queries.
+</Info>
+
+## Core Features
+
+<CardGroup cols={2}>
+  <Card
+    title="Flexible Queries"
+    icon="search"
+  >
+    Request only the fields you need, reducing payload size and improving performance
+  </Card>
+  <Card
+    title="Nested Relationships"
+    icon="sitemap"
+  >
+    Fetch related data in a single request (orders with line items, SKUs with inventory)
+  </Card>
+  <Card
+    title="Type Safety"
+    icon="shield-alt"
+  >
+    Strongly typed schema with input validation and comprehensive error messages
+  </Card>
+  <Card
+    title="Real-time Updates"
+    icon="sync"
+  >
+    Mutations return updated data immediately for optimistic UI updates
+  </Card>
+</CardGroup>
+
+## Basic Query Structure
+
+All GraphQL requests use POST method with a JSON body:
+
+```graphql
+{
+  "query": "query { orders(ids: [\"order-id\"]) { id customerIdentifier status } }",
+  "variables": {}
+}
+```
+
+## Core Resources
+
+### Orders
+
+Query and manage orders with comprehensive filtering and nested data access.
+
+<Tabs>
+  <Tab title="Query Orders">
+    ```graphql
+    query GetOrders($orderId: ID!) {
+      order(id: $orderId) {
+        id
+        customerIdentifier
+        status
+        substatus
+        priority
+        shippingProvider
+        shipperServiceLevel
+        submittedAt
+
+        # Nested line items
+        lineItems {
+          id
+          skuId
+          skuCustomerId
+          quantity
+          price
+          sku {
+            customerIdentifier
+            productName
+            brandName
+          }
+        }
+
+        # Order fulfillments
+        orderFulfillments {
+          id
+          status
+          shipmentDueAt
+          orderFulfillmentLineItems {
+            skuId
+            quantity
+            allocatedQuantity
+          }
+        }
+
+        # Shipments
+        shipments {
+          id
+          trackingNumber
+          trackingUrl
+          shippingProvider {
+            name
+          }
+          lineItems {
+            skuId
+            quantity
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Update Order">
+    ```graphql
+    mutation UpdateOrder($orderId: ID!, $updates: OrderUpdate!) {
+      updateOrder(id: $orderId, updateOrderInput: $updates) {
+        id
+        customerIdentifier
+        priority
+        status
+        updatedAt
+      }
+    }
+    ```
+
+    **Variables:**
+    ```json
+    {
+      "orderId": "550e8400-e29b-41d4-a716-446655440000",
+      "updates": {
+        "priority": 200,
+        "shippingProvider": "UPS",
+        "shipperServiceLevel": "express"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Bulk Orders">
+    ```graphql
+    query GetMultipleOrders($orderIds: [ID!]!) {
+      orders(ids: $orderIds) {
+        id
+        customerIdentifier
+        status
+        submittedAt
+        lineItems {
+          skuCustomerId
+          quantity
+        }
+      }
+    }
+    ```
+
+    **Variables:**
+    ```json
+    {
+      "orderIds": [
+        "550e8400-e29b-41d4-a716-446655440000",
+        "660e8400-e29b-41d4-a716-446655440001"
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### SKUs (Catalog)
+
+Access product catalog data with flexible querying and nested relationships.
+
+<Tabs>
+  <Tab title="Query SKUs">
+    ```graphql
+    query GetSku($skuId: ID!) {
+      sku(id: $skuId) {
+        id
+        customerIdentifier
+        uniqueSkuName
+        customerBarCode
+        vendorBarCode
+        brandName
+        productName
+        productCategory
+        productDescription
+        imageUrl
+
+        # Dimensions
+        dimWeight
+        dimLength
+        dimWidth
+        dimHeight
+
+        # Pricing
+        unitCost
+        price
+
+        # Properties
+        properties
+        ormd
+        lotControlled
+        expirable
+
+        # Kit information
+        isKit
+        kitType
+        kitSkus {
+          childSku {
+            customerIdentifier
+            productName
+          }
+          quantity
+        }
+
+        # Barcodes
+        barCodes {
+          code
+        }
+
+        # Oversell policies
+        skuOversellPolicies {
+          status
+          oversellLimit
+          startDateTime
+          expirationDateTime
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Search SKUs">
+    ```graphql
+    query SearchSkuCatalog(
+      $filters: CatalogFilters
+      $first: Int
+      $after: String
+    ) {
+      searchSkuCatalog(
+        filters: $filters
+        first: $first
+        after: $after
+      ) {
+        totalCount
+        edges {
+          cursor
+          node {
+            sku {
+              id
+              customerIdentifier
+              uniqueSkuName
+              brandName
+              productName
+            }
+            accountName
+            locationSnapshot
+            isOnWatchList
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Multiple SKUs">
+    ```graphql
+    query GetMultipleSKUs($skuIds: [ID!]!) {
+      skus(ids: $skuIds) {
+        id
+        customerIdentifier
+        productName
+        brandName
+        dimWeight
+        price
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Inbound Shipments (ASN)
+
+Manage incoming inventory with comprehensive tracking and receiving status.
+
+<Tabs>
+  <Tab title="Query Inbound Shipment">
+    ```graphql
+    query GetInboundShipment($id: ID!) {
+      inboundShipment(id: $id) {
+        id
+        customerIdentifier
+        customerPoIdentifier
+        status
+        inventoryLocationId
+        expectedArrivalDate
+
+        # Carrier information
+        carrierName
+        carrierType
+        trackingNumber
+        driverName
+        driverPhone
+
+        # Shipper details
+        shipperName
+        shipperCity
+        shipperLocale
+        shipperCountry
+
+        # Line items
+        lineItems {
+          id
+          skuId
+          quantity
+          unexpectedLineItem
+          sku {
+            customerIdentifier
+            productName
+          }
+        }
+
+        # Timeline
+        timelineEvents {
+          event
+          description
+          occuredAt
+        }
+
+        # Account
+        account {
+          name
+          slug
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Enqueue Receipt">
+    ```graphql
+    mutation EnqueueASNReceipt($asnId: ID!, $referenceUri: String!) {
+      enqueueASNReceipt(asnId: $asnId, referenceUri: $referenceUri) {
+        id
+        status
+        updatedAt
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Cancel ASN">
+    ```graphql
+    mutation CancelInboundShipment($inboundShipmentId: ID!) {
+      cancelAsn(inboundShipmentId: $inboundShipmentId)
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### RMAs (Returns)
+
+Handle return merchandise authorizations and return processing.
+
+<Tabs>
+  <Tab title="Query RMA">
+    ```graphql
+    query GetRMA($id: ID!) {
+      rma(id: $id) {
+        id
+        customerIdentifier
+        status
+        returnType
+        packageId
+        returnLabelUrl
+        trackingUrl
+
+        # Customer address
+        customerAddressName
+        customerAddressStreetLineOne
+        customerAddressCity
+        customerAddressLocaleCode
+        customerAddressPostalCode
+
+        # Line items
+        lineItems {
+          id
+          skuId
+          quantity
+          quantityReceived
+          returnReasonCode
+          returnNotes
+          returnInventoryStatus
+          sku {
+            customerIdentifier
+            productName
+          }
+        }
+
+        # Timeline
+        timelineEvents {
+          event
+          description
+          occuredAt
+        }
+
+        receivedAt
+        createdAt
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Generate Return Label">
+    ```graphql
+    mutation GenerateReturnLabel($rmaId: ID!, $serviceLevel: String!) {
+      generateReturnLabel(rmaId: $rmaId, serviceLevel: $serviceLevel)
+    }
+    ```
+  </Tab>
+  <Tab title="Mark Refunded">
+    ```graphql
+    mutation MarkRefunded($rmaId: ID!) {
+      markRefunded(rmaId: $rmaId)
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Accounts
+
+Query account configuration and settings.
+
+```graphql
+query GetAccount($slug: String!) {
+  account(slug: $slug) {
+    id
+    name
+    slug
+    status
+
+    # Settings
+    handlesRefunds
+    forceBackorder
+    orderProcessingDelayMins
+    defaultRoutingPolicy
+    defaultSplitPolicy
+
+    # Locations
+    inventoryLocations {
+      id
+      name
+      city
+      localeCode
+      shortCode
+    }
+
+    # Features
+    features
+
+    # Value added services
+    valueAddedServices {
+      id
+      name
+      description
+    }
+
+    # Ship method groups
+    shipMethodGroups {
+      id
+      name
+    }
+  }
+}
+```
+
+### Inventory Locations
+
+Query warehouse and fulfillment center information.
+
+```graphql
+query GetInventoryLocations {
+  inventoryLocations {
+    id
+    name
+    locationType
+    streetLineOne
+    city
+    localeCode
+    postalCode
+    shortCode
+    timezone
+    multitenant
+
+    # Pods
+    pods {
+      id
+      name
+      accounts {
+        name
+        slug
+      }
+    }
+  }
+}
+```
+
+## Advanced Queries
+
+### Nested Data Fetching
+
+GraphQL excels at fetching related data in a single request:
+
+```graphql
+query CompleteOrderView($orderId: ID!) {
+  order(id: $orderId) {
+    id
+    customerIdentifier
+    status
+
+    # Get account details
+    account {
+      name
+      slug
+      defaultRoutingPolicy
+    }
+
+    # Get line items with full SKU details
+    lineItems {
+      quantity
+      price
+      sku {
+        customerIdentifier
+        productName
+        brandName
+        dimWeight
+        dimLength
+        dimWidth
+        dimHeight
+      }
+    }
+
+    # Get fulfillments with nested line items
+    orderFulfillments {
+      status
+      shipmentDueAt
+      inventoryLocationId
+      orderFulfillmentLineItems {
+        quantity
+        allocatedQuantity
+        sku {
+          customerIdentifier
+          productName
+        }
+      }
+    }
+
+    # Get shipments with tracking
+    shipments {
+      trackingNumber
+      trackingUrl
+      shipmentDateTime
+      shippingProvider {
+        name
+      }
+      lineItems {
+        quantity
+        sku {
+          customerIdentifier
+        }
+      }
+    }
+
+    # Timeline events
+    timelineEvents {
+      event
+      description
+      occuredAt
+    }
+  }
+}
+```
+
+### Pagination with Cursors
+
+For large result sets, use cursor-based pagination:
+
+```graphql
+query SearchSKUsWithPagination(
+  $filters: CatalogFilters
+  $first: Int
+  $after: String
+) {
+  searchSkuCatalog(
+    filters: $filters
+    first: $first
+    after: $after
+  ) {
+    totalCount
+    edges {
+      cursor
+      node {
+        sku {
+          id
+          customerIdentifier
+          productName
+        }
+        accountName
+        isOnWatchList
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+  }
+}
+```
+
+## Common Mutations
+
+### Update Order
+
+```graphql
+mutation UpdateOrderDetails($orderId: ID!, $updates: OrderUpdate!) {
+  updateOrder(id: $orderId, updateOrderInput: $updates) {
+    id
+    customerIdentifier
+    priority
+    shippingProvider
+    shipperServiceLevel
+    status
+    updatedAt
+  }
+}
+```
+
+**Variables:**
+```json
+{
+  "orderId": "550e8400-e29b-41d4-a716-446655440000",
+  "updates": {
+    "priority": 200,
+    "shippingProvider": "UPS",
+    "shipperServiceLevel": "express",
+    "giftMessage": "Happy Birthday!",
+    "specialInstructions": "Handle with care"
+  }
+}
+```
+
+### Cancel Order Fulfillments
+
+```graphql
+mutation CancelFulfillments($fulfillmentIds: [ID!]!) {
+  cancelFulfillments(fulfillmentIds: $fulfillmentIds)
+}
+```
+
+### Split Order Fulfillment
+
+```graphql
+mutation SplitFulfillment($orderFulfillmentId: ID!) {
+  splitOrderFulfillment(orderFulfillmentId: $orderFulfillmentId) {
+    id
+    status
+    orderFulfillmentLineItems {
+      skuId
+      quantity
+    }
+  }
+}
+```
+
+### Update Order Fulfillment Line Items
+
+```graphql
+mutation UpdateFulfillmentItems(
+  $orderFulfillmentId: ID!
+  $lineItems: [OrderFulfillmentLineItemInput!]!
+) {
+  updateOrderFulfillmentLineItems(
+    orderFulfillmentId: $orderFulfillmentId
+    orderFulfillmentLineItemsInput: $lineItems
+  ) {
+    id
+    orderFulfillments {
+      id
+      orderFulfillmentLineItems {
+        skuId
+        quantity
+        allocatedQuantity
+      }
+    }
+  }
+}
+```
+
+## Error Handling
+
+GraphQL returns errors in a standardized format:
+
+```json
+{
+  "errors": [
+    {
+      "message": "Order not found",
+      "locations": [
+        {
+          "line": 2,
+          "column": 3
+        }
+      ],
+      "path": [
+        "order"
+      ],
+      "extensions": {
+        "code": "NOT_FOUND"
+      }
+    }
+  ],
+  "data": {
+    "order": null
+  }
+}
+```
+
+### Common Error Codes
+
+<CardGroup cols={2}>
+  <Card
+    title="UNAUTHORIZED"
+    icon="lock"
+  >
+    Invalid or missing authentication token
+  </Card>
+  <Card
+    title="NOT_FOUND"
+    icon="search"
+  >
+    Requested resource does not exist
+  </Card>
+  <Card
+    title="VALIDATION_ERROR"
+    icon="exclamation-triangle"
+  >
+    Input validation failed
+  </Card>
+  <Card
+    title="INTERNAL_SERVER_ERROR"
+    icon="server"
+  >
+    Unexpected server error occurred
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card
+    title="Request Only Needed Fields"
+    icon="filter"
+  >
+    Only query fields you need to reduce payload size and improve performance
+  </Card>
+  <Card
+    title="Use Variables"
+    icon="dollar-sign"
+  >
+    Always use GraphQL variables instead of string interpolation for safety
+  </Card>
+  <Card
+    title="Handle Partial Errors"
+    icon="exclamation-circle"
+  >
+    GraphQL can return partial data with errors - handle both scenarios
+  </Card>
+  <Card
+    title="Leverage Fragments"
+    icon="puzzle-piece"
+  >
+    Use fragments to reuse common field selections across queries
+  </Card>
+</CardGroup>
+
+### Using Fragments
+
+```graphql
+fragment OrderSummary on Order {
+  id
+  customerIdentifier
+  status
+  priority
+  submittedAt
+}
+
+fragment LineItemDetails on OrderLineItem {
+  skuCustomerId
+  quantity
+  price
+  sku {
+    productName
+    brandName
+  }
+}
+
+query GetOrderWithFragments($orderId: ID!) {
+  order(id: $orderId) {
+    ...OrderSummary
+    lineItems {
+      ...LineItemDetails
+    }
+  }
+}
+```
+
+## Performance Optimization
+
+### DataLoaders
+
+The GraphQL API uses DataLoaders to optimize database queries and prevent N+1 query problems. This means you can freely nest queries without worrying about performance degradation.
+
+### Query Batching
+
+Multiple queries can be batched in a single HTTP request:
+
+```json
+[
+  {
+    "query": "query { order(id: \"id1\") { id status } }"
+  },
+  {
+    "query": "query { sku(id: \"id2\") { id productName } }"
+  }
+]
+```
+
+## Introspection
+
+Query the GraphQL schema itself to discover available types and fields:
+
+```graphql
+query IntrospectionQuery {
+  __schema {
+    types {
+      name
+      kind
+      description
+    }
+  }
+}
+```
+
+Query specific type information:
+
+```graphql
+query TypeInfo {
+  __type(name: "Order") {
+    name
+    fields {
+      name
+      type {
+        name
+        kind
+      }
+    }
+  }
+}
+```
+
+## Example: Complete Request
+
+```bash
+curl -X POST "https://app.masonhub.co/api/v2/graphql" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "query GetOrder($id: ID!) { order(id: $id) { id customerIdentifier status lineItems { skuCustomerId quantity sku { productName } } } }",
+    "variables": {
+      "id": "550e8400-e29b-41d4-a716-446655440000"
+    }
+  }'
+```
+
+## Migration from REST API
+
+If you're currently using the REST API (v1), the GraphQL API (v2) offers several advantages:
+
+<Tabs>
+  <Tab title="REST API">
+    ```bash
+    # Multiple requests needed
+    GET /api/v1/orders?id=order-id
+    GET /api/v1/skus?id=sku-id-1,sku-id-2
+    GET /api/v1/inventory_locations
+    ```
+  </Tab>
+  <Tab title="GraphQL API">
+    ```graphql
+    # Single request
+    query {
+      order(id: "order-id") {
+        id
+        customerIdentifier
+        lineItems {
+          sku {
+            id
+            productName
+            # Only fields you need
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+After exploring the GraphQL API:
+
+- [REST API Reference](/api-reference/overview) for REST endpoints
+- [Authentication](/api-reference/authentication) for token management
+- [Callbacks](/api-reference/callbacks) for event webhooks
+- [DataFactory](/api-reference/datafactory) for testing utilities
+
+## Support
+
+For GraphQL API questions and support:
+
+- **Integration Support**: [integration-support@masonhub.co](mailto:integration-support@masonhub.co)
+- **General Support**: [support@masonhub.co](mailto:support@masonhub.co)
