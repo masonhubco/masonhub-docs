@@ -9,11 +9,31 @@ description: 'Complete MasonHub Order Management System API reference and docume
 
 The MasonHub REST API enables you to programmatically manage your entire supply chain operations, from catalog management to order fulfillment and everything in between.
 
+## API Options
+
+MasonHub provides two powerful API interfaces:
+
+<CardGroup cols={2}>
+  <Card
+    title="REST API (v1)"
+    icon="code"
+  >
+    Traditional REST endpoints with JSON payloads at `/{account}/api/v1/`
+  </Card>
+  <Card
+    title="GraphQL API (v2)"
+    icon="diagram-project"
+  >
+    Modern GraphQL interface with flexible queries at `/api/v2/graphql`
+  </Card>
+</CardGroup>
+
 ## Endpoints
 
 ### Core Resources
+* [GraphQL API](/api-reference/graphql): Modern GraphQL interface for flexible queries and real-time data access
 * [Catalog Management](/api-reference/catalog): SKU management, product information, and catalog operations
-* [Order Management](/api-reference/orders): Order creation, updates, cancellation, and lifecycle management  
+* [Order Management](/api-reference/orders): Order creation, updates, cancellation, and lifecycle management
 * [Inventory Management](/api-reference/inventory): Real-time inventory tracking, allocation, and availability
 
 ### Fulfillment Operations
