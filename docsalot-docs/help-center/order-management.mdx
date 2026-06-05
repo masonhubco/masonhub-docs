@@ -1,0 +1,379 @@
+---
+title: "Order Management Guide"
+description: "Comprehensive guide to creating, managing, and fulfilling orders in MasonHub"
+sidebarTitle: "Order Management"
+---
+
+Master order management with MasonHub's comprehensive system. This guide covers everything from order creation to fulfillment and tracking.
+
+## Order Lifecycle
+
+<Steps>
+  <Step title="Order Creation">
+    Orders enter the system via integration, API, or manual entry
+  </Step>
+  <Step title="Validation">
+    System validates inventory, address, and payment
+  </Step>
+  <Step title="Processing">
+    Order is allocated to warehouse and picked
+  </Step>
+  <Step title="Fulfillment">
+    Order is packed and shipped
+  </Step>
+  <Step title="Delivery">
+    Tracking provided until successful delivery
+  </Step>
+</Steps>
+
+## Creating Orders
+
+### Order Creation Methods
+
+<Tabs>
+  <Tab title="Automated Import">
+    ### Integration-Based Orders
+
+    Orders flow automatically from your connected platforms:
+
+    **Shopify Orders:**
+    - Auto-import when order is paid
+    - Real-time inventory sync
+    - Automatic status updates
+
+    **EDI Orders:**
+    - Batch processing
+    - Compliance validation
+    - Automated acknowledgments
+
+    **API Orders:**
+    - POST to `/orders` endpoint
+    - Real-time validation
+    - Immediate confirmation
+
+    [API Documentation →](https://support.masonhub.co/hc/en-us/articles/360052470011-Create-Edit-Cancel-Orders-MasonHub-API)
+  </Tab>
+
+  <Tab title="Manual Entry">
+    ### Create Orders Manually
+
+    Perfect for samples, replacements, or one-off orders:
+
+    1. Navigate to **Orders** → **Create New**
+    2. Select order type:
+       - B2C (Direct to Consumer)
+       - B2B (Wholesale)
+       - Sample
+       - Replacement
+    3. Enter customer information
+    4. Add products and quantities
+    5. Select shipping method
+    6. Review and submit
+
+    <Tip>
+      Use manual orders for testing new workflows before automation.
+    </Tip>
+  </Tab>
+
+  <Tab title="Bulk Upload">
+    ### CSV Import
+
+    Import multiple orders at once:
+
+    1. Download CSV template
+    2. Fill in order details
+    3. Upload via **Orders** → **Bulk Import**
+    4. Review validation results
+    5. Confirm import
+
+    **Required fields:**
+    - Order number
+    - Customer name
+    - Shipping address
+    - SKU and quantity
+    - Shipping method
+  </Tab>
+</Tabs>
+
+## Order Types
+
+### Wholesale Orders
+
+<Card title="B2B Fulfillment" icon="building">
+  Large-volume orders shipped to retailers and distributors.
+
+  **Features:**
+  - EDI compliance (856 ASN, 810 Invoice)
+  - Custom packing requirements
+  - Pallet configuration
+  - Routing guide compliance
+  - Net payment terms
+
+  **Best Practices:**
+  - Verify routing guides before shipping
+  - Confirm special requirements (labels, packing lists)
+  - Schedule appointments for large shipments
+
+  [Wholesale Guide →](https://support.masonhub.co/hc/en-us/articles/30492880653204-Getting-Started-Wholesale-Order-Management-with-MasonHub)
+</Card>
+
+### Dropship Orders
+
+<Card title="D2C Fulfillment" icon="parachute-box">
+  Individual orders shipped directly to end consumers.
+
+  **Features:**
+  - Branded packing slips
+  - Gift messages
+  - Marketing inserts
+  - Return labels
+  - Consumer-friendly packaging
+
+  **Three Methods:**
+  1. **EDI Integration** - Automated retailer connections
+  2. **Shopify Integration** - Direct store sync
+  3. **Manual Creation** - One-off orders
+
+  [Dropshipping Introduction →](https://support.masonhub.co/hc/en-us/articles/28710035170068-Introduction-to-Dropshipping-with-MasonHub)
+</Card>
+
+## Order Management Features
+
+### Order Status Tracking
+
+<AccordionGroup>
+  <Accordion title="Order Statuses" icon="signal">
+    **Common order statuses:**
+
+    | Status | Description |
+    |--------|------------|
+    | **Pending** | Awaiting validation |
+    | **Confirmed** | Validated and ready |
+    | **Allocated** | Inventory reserved |
+    | **Picking** | Being collected |
+    | **Packing** | Being packaged |
+    | **Shipped** | Left warehouse |
+    | **Delivered** | Confirmed delivery |
+    | **Cancelled** | Order cancelled |
+    | **On Hold** | Requires attention |
+  </Accordion>
+
+  <Accordion title="Hold Reasons" icon="pause">
+    **Why orders go on hold:**
+    - Payment verification needed
+    - Address validation failed
+    - Inventory shortage
+    - Fraud detection triggered
+    - Special handling required
+    - Customer requested hold
+
+    **Resolving holds:**
+    1. View hold reason in order details
+    2. Address the issue
+    3. Release hold manually or via API
+  </Accordion>
+
+  <Accordion title="Tracking Information" icon="location-dot">
+    **Shipment tracking:**
+    - Carrier selection
+    - Tracking number generation
+    - Real-time status updates
+    - Delivery confirmation
+    - Exception handling
+
+    Access tracking via:
+    - MasonHub portal
+    - API endpoint
+    - Customer notifications
+  </Accordion>
+</AccordionGroup>
+
+### Editing Orders
+
+<Warning>
+  Orders can only be edited before warehouse processing begins. Once picking starts, cancellation and re-creation is required.
+</Warning>
+
+**Editable fields:**
+- Shipping address
+- Shipping method
+- Order priority
+- Special instructions
+- Hold status
+
+**To edit an order:**
+1. Find order in **Orders** list
+2. Click **Edit** (if available)
+3. Make necessary changes
+4. Save and confirm
+
+### Cancelling Orders
+
+<Tabs>
+  <Tab title="Single Cancellation">
+    **Cancel individual orders:**
+
+    1. Locate the order
+    2. Click **Cancel Order**
+    3. Select cancellation reason
+    4. Confirm cancellation
+
+    **Timing:**
+    - Before picking: Immediate cancellation
+    - During fulfillment: Attempt to stop
+    - After shipping: Return process required
+  </Tab>
+
+  <Tab title="Bulk Cancellation">
+    **Cancel multiple orders:**
+
+    1. Go to **Orders** → **Bulk Actions**
+    2. Select orders to cancel
+    3. Choose **Cancel Selected**
+    4. Provide reason
+    5. Confirm action
+
+    <Note>
+      Bulk cancellations are logged for audit purposes.
+    </Note>
+  </Tab>
+
+  <Tab title="API Cancellation">
+    **Programmatic cancellation:**
+
+    ```json
+    DELETE /api/orders/{orderId}
+    {
+      "reason": "customer_request",
+      "notify_customer": true
+    }
+    ```
+
+    [API Reference →](/api-reference/orders/cancel-orders)
+  </Tab>
+</Tabs>
+
+## Advanced Features
+
+### Order Routing
+
+Configure intelligent order routing:
+
+<CardGroup cols={2}>
+  <Card title="Geographic Routing" icon="map">
+    Route orders to nearest warehouse for faster delivery
+  </Card>
+  <Card title="Inventory-Based" icon="boxes">
+    Send orders where inventory is available
+  </Card>
+  <Card title="Cost Optimization" icon="dollar-sign">
+    Choose fulfillment location based on shipping costs
+  </Card>
+  <Card title="Load Balancing" icon="balance-scale">
+    Distribute orders evenly across facilities
+  </Card>
+</CardGroup>
+
+### Special Handling
+
+<AccordionGroup>
+  <Accordion title="Gift Orders" icon="gift">
+    - Gift wrapping options
+    - Custom messages
+    - Hide pricing information
+    - Special packaging
+  </Accordion>
+
+  <Accordion title="Expedited Orders" icon="rocket">
+    - Priority processing
+    - Express shipping
+    - Same-day fulfillment
+    - Weekend shipping
+  </Accordion>
+
+  <Accordion title="International Orders" icon="globe">
+    - Customs documentation
+    - Duty/tax calculation
+    - Restricted item validation
+    - Commercial invoices
+
+    [International Requirements →](/international/commercial-invoice-requirements)
+  </Accordion>
+</AccordionGroup>
+
+## Reporting & Analytics
+
+### Order Reports
+
+Access comprehensive order data:
+
+- **Daily Order Summary** - Volume, status, performance
+- **Fulfillment Metrics** - Processing times, accuracy
+- **Shipping Analysis** - Carrier performance, costs
+- **Exception Reports** - Holds, cancellations, returns
+
+**To generate reports:**
+1. Navigate to **Reports** → **Orders**
+2. Select report type
+3. Choose date range
+4. Apply filters
+5. Export (CSV, Excel, PDF)
+
+## Best Practices
+
+<Check>
+  **Order Management Best Practices:**
+
+  ✓ Review held orders daily
+  ✓ Monitor inventory levels for popular items
+  ✓ Set up automated notifications for exceptions
+  ✓ Validate addresses before submission
+  ✓ Use order tags for easy filtering
+  ✓ Document special handling requirements
+  ✓ Test new workflows with sample orders
+</Check>
+
+## Troubleshooting
+
+<Tabs>
+  <Tab title="Common Issues">
+    **Frequently encountered problems:**
+
+    | Issue | Solution |
+    |-------|----------|
+    | Order stuck in pending | Check inventory and payment |
+    | Missing tracking | Allow 24 hours for generation |
+    | Address validation failed | Verify with customer |
+    | Inventory mismatch | Run inventory reconciliation |
+  </Tab>
+
+  <Tab title="Error Messages">
+    **Common error codes:**
+
+    - **ERR_001**: Invalid SKU
+    - **ERR_002**: Insufficient inventory
+    - **ERR_003**: Invalid address
+    - **ERR_004**: Payment failed
+    - **ERR_005**: Duplicate order
+
+    [Full error reference →](/api-reference/stack-trace)
+  </Tab>
+</Tabs>
+
+## Additional Resources
+
+- [Create, Edit & Cancel Orders via API](https://support.masonhub.co/hc/en-us/articles/360052470011-Create-Edit-Cancel-Orders-MasonHub-API)
+- [Check Inbound Shipment Status](https://support.masonhub.co/hc/en-us/articles/360052021812-Check-the-Status-of-Inbound-Shipments-ASNs)
+- [Customer Support Process](https://support.masonhub.co/hc/en-us/articles/16483745494292-Customer-Support-Process-and-Expectations)
+
+---
+
+<Info>
+  **Need Help?** Contact support at **support@masonhub.co** or use the in-portal support widget for immediate assistance with order issues.
+</Info>
+
+## Sources:
+- [Create, Edit & Cancel Orders | MasonHub API](https://support.masonhub.co/hc/en-us/articles/360052470011-Create-Edit-Cancel-Orders-MasonHub-API)
+- [Getting Started: Wholesale Order Management with MasonHub](https://support.masonhub.co/hc/en-us/articles/30492880653204-Getting-Started-Wholesale-Order-Management-with-MasonHub)
+- [Introduction to Dropshipping with MasonHub](https://support.masonhub.co/hc/en-us/articles/28710035170068-Introduction-to-Dropshipping-with-MasonHub)
+- [Check the Status of Inbound Shipments / ASNs](https://support.masonhub.co/hc/en-us/articles/360052021812-Check-the-Status-of-Inbound-Shipments-ASNs)

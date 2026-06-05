@@ -1,0 +1,187 @@
+---
+title: 'Configuration'
+description: 'Configure shipping service providers and service levels for proper order routing'
+---
+
+When creating orders via the API, you must populate specific shipping fields to correctly route shipments through MasonHub. This section covers the required fields and standard mappings.
+
+## Required Fields
+
+When creating orders, you must specify both the shipping provider and service level:
+
+<CardGroup cols={2}>
+  <Card
+    title="shipping_service_provider"
+    icon="truck"
+  >
+    The shipper to use for this package (e.g., "masonhub", "willCall")
+  </Card>
+  <Card
+    title="shipping_service_level"
+    icon="gauge"
+  >
+    The type of service level required (e.g., "ground", "2day", "overnight")
+  </Card>
+</CardGroup>
+
+## Standard Ship Method Mappings
+
+### MasonHub Carrier Services
+
+| Service Provider | Service Level | Description |
+| ---------------- | ------------- | ----------- |
+| `masonhub` | `ground` | Standard ground shipping |
+| `masonhub` | `groundPlus` | Enhanced ground service |
+| `masonhub` | `3day` | 3-day delivery service |
+| `masonhub` | `2day` | 2-day delivery service |
+| `masonhub` | `standardOvernight` | Next day delivery (standard) |
+| `masonhub` | `priorityOvernight` | Next day delivery (priority) |
+
+### Special Services
+
+| Service Provider | Service Level | Description |
+| ---------------- | ------------- | ----------- |
+| `willCall` | `willCall` | Customer pickup at warehouse |
+
+<Note>
+During onboarding, you'll work with your MasonHub resource to ensure ship methods are mapped according to your business requirements.
+</Note>
+
+## Example Order Creation
+
+Here's how to properly set shipping information when creating an order:
+
+```json
+{
+  "order": {
+    "external_id": "ORDER-12345",
+    "shipping_address": {
+      "name": "John Doe",
+      "street": "123 Main St",
+      "city": "Springfield",
+      "state": "IL",
+      "zip": "62701",
+      "country": "US"
+    },
+    "shipping_service_provider": "masonhub",
+    "shipping_service_level": "2day",
+    "line_items": [
+      {
+        "sku": "PRODUCT-001",
+        "quantity": 2,
+        "price": 25.00
+      }
+    ]
+  }
+}
+```
+
+📘 Reference: [Create Order API](https://docs.masonhub.co/api/v1#tag/Orders/paths/~1orders/post)
+
+## Error Handling
+
+### Common Mapping Errors
+
+<Warning>
+If the mapping is incorrect or hasn't been set up on the MasonHub side, you'll receive an API error message.
+</Warning>
+
+**Example Error Response:**
+```json
+{
+  "error": {
+    "code": "INVALID_SHIP_METHOD",
+    "message": "Ship method mapping not found",
+    "details": {
+      "shipping_service_provider": "invalid_provider",
+      "shipping_service_level": "ground"
+    }
+  }
+}
+```
+
+### Troubleshooting Steps
+
+<Steps>
+  <Step title="Verify Mapping Configuration">
+    Confirm your ship methods are configured in MasonHub
+  </Step>
+  <Step title="Check Field Values">
+    Ensure you're using exact values from the approved mappings
+  </Step>
+  <Step title="Contact Support">
+    Reach out to your onboarding resource or support team
+  </Step>
+</Steps>
+
+## Custom Ship Method Setup
+
+### During Onboarding
+
+Work with your MasonHub onboarding resource to:
+
+- **Map ERP Ship Methods**: Connect your internal shipping codes to MasonHub values
+- **Configure Service Levels**: Set up service level agreements and delivery expectations
+- **Test Mappings**: Validate mappings work correctly in sandbox environment
+
+### Adding New Ship Methods
+
+<Accordion title="Process for New Ship Methods">
+  1. **Business Requirements**: Define the new shipping service needs
+  2. **Technical Mapping**: Determine the appropriate provider and service level codes
+  3. **Configuration**: Work with MasonHub to add the mapping
+  4. **Testing**: Validate the new mapping in sandbox
+  5. **Production Deployment**: Roll out to production environment
+</Accordion>
+
+## Regional Considerations
+
+### Domestic vs. International
+
+Different ship methods may be required based on destination:
+
+<Tabs>
+  <Tab title="Domestic (US)">
+    - Standard ground services
+    - Express delivery options
+    - Regional carrier preferences
+  </Tab>
+  <Tab title="International">
+    - International express services
+    - Customs handling requirements
+    - Regional carrier partnerships
+  </Tab>
+</Tabs>
+
+## API Reference
+
+<Card
+  title="Create Order API"
+  icon="link"
+  href="https://docs.masonhub.co/api/v1#tag/Orders/paths/~1orders/post"
+>
+  Complete API documentation for order creation with shipping parameters
+</Card>
+
+## Support
+
+For additional ship mapping questions or configuration issues:
+
+<CardGroup cols={2}>
+  <Card
+    title="Onboarding Support"
+    icon="user-plus"
+  >
+    Contact your assigned onboarding resource
+  </Card>
+  <Card
+    title="Technical Support"
+    icon="headset"
+  >
+    Email: [support@masonhub.co](mailto:support@masonhub.co)
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+Once your ship method mappings are configured, proceed to learn about [getting data back into the ERP / Source System](/data-sync/polling-get-calls).

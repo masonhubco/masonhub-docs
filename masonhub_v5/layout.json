@@ -1,0 +1,161 @@
+{
+  "name": "MasonHub ERP Integration",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://docsalot.dev"
+  },
+  "favicon": "/logo/mh-light.png",
+  "font": {
+    "headings": {
+      "family": "Work Sans",
+      "url": "/fonts/Work_Sans/WorkSans-VariableFont_wght.ttf",
+      "weight": "600"
+    },
+    "body": {
+      "family": "Inter"
+    }
+  },
+  "colors": {
+    "primary": "#1E3A8A",
+    "light": "#60A5FA",
+    "dark": "#1D4ED8",
+    "background": {
+      "light": "#F8FAFC",
+      "dark": "#000000"
+    },
+    "anchors": {
+      "from": "#1D4ED8",
+      "to": "#2563EB"
+    }
+  },
+  "modeToggle": {
+    "default": "light"
+  },
+  "background": {
+    "style": "gradient"
+  },
+  "layout": {
+    "rounded": "default",
+    "wide": true
+  },
+  "sidebar": {
+    "items": "container",
+    "defaultCollapsed": false
+  },
+  "topbar": {
+    "style": "default"
+  },
+  "api": {
+    "baseUrl": "https://sandbox.masonhub.co/dragonfly-cosmetics-demo/api/v1",
+    "auth": {
+      "method": "bearer"
+    }
+  },
+  "topbarCtaButton": {
+    "name": "Contact Support",
+    "url": "mailto:integration-support@masonhub.co"
+  },
+  "anchors": [
+    {
+      "name": "API Reference",
+      "icon": "code",
+      "url": "api-reference"
+    },
+    {
+      "name": "Download OpenAPI",
+      "icon": "download",
+      "url": "/public_dereferenced.yaml"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "API Documentation",
+      "pages": [
+        "api-reference/overview",
+        "api-reference/api-design-philosophy",
+        "api-reference/authentication",
+        "api-reference/stack-trace",
+        "api-reference/catalog/get-skus",
+        "api-reference/catalog/create-skus",
+        "api-reference/catalog/update-skus",
+        "api-reference/catalog/delete-skus",
+        "api-reference/inventory/get-inventory",
+        "api-reference/inventory/request-snapshot",
+        "api-reference/inventory/get-locations",
+        "api-reference/inbound-shipments/get-inbound-shipments",
+        "api-reference/inbound-shipments/create-inbound-shipments",
+        "api-reference/inbound-shipments/update-inbound-shipments",
+        "api-reference/inbound-shipments/delete-inbound-shipments",
+        "api-reference/orders/get-orders",
+        "api-reference/orders/create-orders",
+        "api-reference/orders/update-orders",
+        "api-reference/orders/get-order-updates",
+        "api-reference/orders/cancel-orders",
+        "api-reference/orders/get-order-cancels",
+        "api-reference/shipments/get-order-shipments",
+        "api-reference/returns/get-returns",
+        "api-reference/returns/create-returns",
+        "api-reference/returns/update-returns",
+        "api-reference/returns/delete-returns",
+        "api-reference/callbacks/get-callback-urls",
+        "api-reference/callbacks/create-callback-urls",
+        "api-reference/callbacks/delete-callback-urls",
+        "api-reference/callback-events/sku-inventory-change-event",
+        "api-reference/callback-events/snapshot-ready",
+        "api-reference/callback-events/order-events",
+        "api-reference/callback-events/order-update-resolutions",
+        "api-reference/callback-events/order-cancel-resolutions",
+        "api-reference/callback-events/inbound-shipment-events",
+        "api-reference/callback-events/RMA-events",
+        "api-reference/callback-holds/get-callback-holds",
+        "api-reference/callback-holds/create-callback-holds",
+        "api-reference/callback-holds/delete-callback-holds",
+        "api-reference/datafactory/create-available",
+        "api-reference/datafactory/loose-inventory",
+        "api-reference/datafactory/ship-order",
+        "api-reference/datafactory/order-shipment-event",
+        "api-reference/datafactory/resolve-order-update",
+        "api-reference/datafactory/resolve-order-cancel",
+        "api-reference/datafactory/trigger-inbound-shipment-event",
+        "api-reference/datafactory/RMA-event",
+        "api-reference/tokens/generate-new-bearer-token",
+        "api-reference/tokens/delete-secret-phrase"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "website": "https://masonhub.co",
+    "linkedin": "https://linkedin.com/company/masonhub"
+  },
+  "footer": {
+    "links": [
+      {
+        "title": "Documentation",
+        "links": [
+          {
+            "label": "Getting Started",
+            "url": "/getting-started/request-access"
+          },
+          {
+            "label": "API Reference",
+            "url": "https://docs.masonhub.co/api/v1"
+          }
+        ]
+      },
+      {
+        "title": "Support",
+        "links": [
+          {
+            "label": "Integration Support",
+            "url": "mailto:integration-support@masonhub.co"
+          },
+          {
+            "label": "General Support",
+            "url": "mailto:support@masonhub.co"
+          }
+        ]
+      }
+    ]
+  }
+}

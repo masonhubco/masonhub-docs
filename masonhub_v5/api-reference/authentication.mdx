@@ -1,0 +1,261 @@
+---
+title: 'Authentication'
+description: 'JWT Bearer token authentication and security requirements for MasonHub API'
+---
+
+# Authentication & Security
+
+All MasonHub API endpoints are secured using JWT (JSON Web Token) encrypted Bearer tokens, providing secure authentication and authorization for all API operations.
+
+## Security Requirements
+
+<CardGroup cols={2}>
+  <Card
+    title="HTTPS Required"
+    icon="lock"
+  >
+    All API requests must use HTTPS encryption
+  </Card>
+  <Card
+    title="Bearer Token"
+    icon="key"
+  >
+    Every request must include a valid JWT bearer token
+  </Card>
+  <Card
+    title="Runtime Decryption"
+    icon="shield"
+  >
+    Tokens are encrypted and only decrypted at runtime
+  </Card>
+  <Card
+    title="No Database Storage"
+    icon="database"
+  >
+    Tokens are matched at runtime, not stored in databases
+  </Card>
+</CardGroup>
+
+## Authentication Headers
+
+Include your bearer token in the Authorization header of all requests:
+
+```http
+Authorization: Bearer your_jwt_token_here
+Content-Type: application/json
+```
+
+## Example API Request
+
+```bash
+curl -X GET "https://api.masonhub.co/{account_slug}/api/v1/orders" \
+  -H "Authorization: Bearer your_jwt_token_here" \
+  -H "Content-Type: application/json"
+```
+
+## Security Scheme Details
+
+| Property | Value |
+|----------|-------|
+| **Security Scheme Type** | HTTP |
+| **HTTP Authorization Scheme** | bearer |
+| **Bearer Format** | JWT |
+| **Encryption** | Runtime decryption |
+
+## Token Management
+
+### Obtaining Tokens
+
+Tokens are provided by your MasonHub integration team during the onboarding process. Contact [integration-support@masonhub.co](mailto:integration-support@masonhub.co) to request access credentials.
+
+### Token Generation API
+
+<Note>
+The token generation endpoint requires special permissions and is typically used only during initial setup.
+</Note>
+
+```http
+POST /secrets
+Content-Type: application/json
+
+{
+  "secret_phrase": "Your secure secret phrase"
+}
+```
+
+### Token Security Best Practices
+
+<Accordion title="Production Security">
+  **For Production Environments:**
+  - Use encrypted tokens exclusively
+  - Store tokens in secure credential management systems
+  - Never expose tokens in client-side code or version control
+  - Implement token rotation policies
+  - Use environment variables for token storage
+</Accordion>
+
+<Accordion title="Development Security">
+  **For Development/Sandbox:**
+  - Use separate tokens from production
+  - Store tokens securely even in development
+  - Don't commit tokens to repositories
+  - Use .env files with proper .gitignore settings
+</Accordion>
+
+<Accordion title="Token Storage">
+  **Recommended Storage Methods:**
+  - AWS Secrets Manager
+  - Azure Key Vault
+  - HashiCorp Vault
+  - Environment variables (for containers)
+  - Encrypted configuration files
+</Accordion>
+
+## Webhook Callback Security
+
+For webhook endpoints, implement additional security measures:
+
+### Callback Token Verification
+
+Register callbacks with verification tokens:
+
+```json
+{
+  "url": "https://api.clienturl.com/api/orderEvent",
+  "message_type": "orderEvent", 
+  "api_version": "1.0",
+  "token": "your_encrypted_verification_token"
+}
+```
+
+### Webhook Security Best Practices
+
+<Steps>
+  <Step title="Use HTTPS">
+    Ensure all callback URLs use HTTPS encryption
+  </Step>
+  <Step title="Verify Tokens">
+    Validate the verification token in callback payloads
+  </Step>
+  <Step title="IP Allowlisting">
+    Consider restricting access to known MasonHub IP addresses
+  </Step>
+  <Step title="Signature Verification">
+    Implement signature verification for critical callbacks
+  </Step>
+</Steps>
+
+## Error Responses
+
+### Authentication Errors
+
+Common authentication error responses:
+
+<CodeGroup>
+```json Missing Token
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authorization header missing"
+  }
+}
+```
+
+```json Invalid Token
+{
+  "error": {
+    "code": "UNAUTHORIZED", 
+    "message": "Invalid bearer token"
+  }
+}
+```
+
+```json Expired Token
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Token expired"
+  }
+}
+```
+</CodeGroup>
+
+## Environment-Specific Authentication
+
+<Tabs>
+  <Tab title="Sandbox">
+    **Base URL**: `https://sandbox.masonhub.co/{account_slug}/api/v1/`
+    
+    **Purpose**: Development and testing
+    
+    **Token Type**: Sandbox-specific JWT tokens
+    
+    **Rate Limits**: More lenient for testing
+  </Tab>
+  <Tab title="Production">
+    **Base URL**: `https://app.masonhub.co/{account_slug}/api/v1/`
+    
+    **Purpose**: Live operations
+    
+    **Token Type**: Production JWT tokens with enhanced security
+    
+    **Rate Limits**: Production-level restrictions
+  </Tab>
+</Tabs>
+
+## Troubleshooting Authentication
+
+### Common Issues
+
+<Accordion title="Token Format Issues">
+  **Problem**: Token not recognized
+  
+  **Solutions:**
+  - Ensure proper "Bearer " prefix in Authorization header
+  - Check for extra spaces or hidden characters
+  - Verify token hasn't been truncated
+  - Confirm using the correct environment token
+</Accordion>
+
+<Accordion title="Token Expiration">
+  **Problem**: Token expired errors
+  
+  **Solutions:**
+  - Request new token from integration team
+  - Implement token refresh logic
+  - Monitor token expiration dates
+  - Set up automated token renewal
+</Accordion>
+
+<Accordion title="Permission Issues">
+  **Problem**: Access denied for specific endpoints
+  
+  **Solutions:**
+  - Verify token has appropriate permissions
+  - Contact integration team for permission review
+  - Ensure using correct account slug in URLs
+  - Check if endpoint exists in your API version
+</Accordion>
+
+## Support
+
+For authentication and security questions:
+
+<CardGroup cols={2}>
+  <Card
+    title="Integration Support"
+    icon="code"
+  >
+    Technical authentication questions
+    
+    Email: [integration-support@masonhub.co](mailto:integration-support@masonhub.co)
+  </Card>
+  <Card
+    title="General Support"
+    icon="headset"
+  >
+    Account and access questions
+    
+    Email: [support@masonhub.co](mailto:support@masonhub.co)
+  </Card>
+</CardGroup>

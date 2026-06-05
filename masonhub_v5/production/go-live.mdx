@@ -1,0 +1,382 @@
+---
+title: 'Production Go-Live'
+description: 'Final steps for deploying your MasonHub integration to production'
+---
+
+This section covers the final steps to deploy your MasonHub integration to production and ensure a successful launch.
+
+## Pre-Go-Live Confirmation
+
+<Warning>
+**Prerequisites**: Ensure you have completed the [production readiness checklist](/production/readiness-checklist) before proceeding with go-live activities.
+</Warning>
+
+### Final Validation Meeting
+
+<Steps>
+  <Step title="Schedule Review Meeting">
+    Contact your MasonHub onboarding resource, Customer Success Manager (CSM), or [integration-support@masonhub.co](mailto:integration-support@masonhub.co) to schedule your final readiness review.
+  </Step>
+  <Step title="Review Checklist">
+    Present your completed readiness checklist and test results
+  </Step>
+  <Step title="Confirm Go-Live Date">
+    Select and confirm your production cutover date
+  </Step>
+  <Step title="Receive Production Credentials">
+    Obtain your production API keys and configuration details
+  </Step>
+</Steps>
+
+## Go-Live Timeline
+
+### Recommended Go-Live Schedule
+
+<Tabs>
+  <Tab title="T-7 Days">
+    **Final Preparations**
+    - [ ] Complete all testing validation
+    - [ ] Finalize production infrastructure
+    - [ ] Conduct stakeholder review meeting
+    - [ ] Confirm MasonHub production readiness
+    - [ ] Schedule go-live activities
+  </Tab>
+  <Tab title="T-3 Days">
+    **Pre-Deployment**
+    - [ ] Freeze code changes
+    - [ ] Receive production API credentials
+    - [ ] Configure production environment
+    - [ ] Conduct final infrastructure checks
+    - [ ] Brief all team members
+  </Tab>
+  <Tab title="T-1 Day">
+    **Final Preparation**
+    - [ ] Validate all systems are ready
+    - [ ] Confirm team availability
+    - [ ] Review rollback procedures
+    - [ ] Ensure monitoring is active
+    - [ ] Communicate go-live to stakeholders
+  </Tab>
+  <Tab title="Go-Live Day">
+    **Deployment**
+    - [ ] Execute cutover plan
+    - [ ] Monitor systems closely
+    - [ ] Validate critical flows
+    - [ ] Confirm data synchronization
+    - [ ] Document any issues
+  </Tab>
+</Tabs>
+
+## Production Environment Setup
+
+### 1. API Configuration
+
+<CardGroup cols={2}>
+  <Card
+    title="Production Credentials"
+    icon="key"
+  >
+    - Update API bearer tokens to production values
+    - Configure production API base URL
+    - Verify SSL certificate configuration
+    - Test connectivity to production endpoints
+  </Card>
+  <Card
+    title="Environment Variables"
+    icon="settings"
+  >
+    - Update all environment-specific configurations
+    - Verify webhook URLs point to production
+    - Confirm rate limiting configurations
+    - Validate error handling settings
+  </Card>
+</CardGroup>
+
+### 2. Security Configuration
+
+<Accordion title="Production Security Checklist">
+  **API Security:**
+  - [ ] Production API tokens securely stored
+  - [ ] HTTPS enforced for all communications
+  - [ ] Webhook signature verification active
+  - [ ] IP allowlisting configured (if required)
+  
+  **Infrastructure Security:**
+  - [ ] Firewall rules properly configured
+  - [ ] SSL certificates valid and current
+  - [ ] Access controls restrict production access
+  - [ ] Audit logging enabled for all activities
+</Accordion>
+
+## Cutover Execution
+
+### 3. Data Migration
+
+<Steps>
+  <Step title="Master Data Sync">
+    - Synchronize all active SKUs to production
+    - Upload current inventory levels
+    - Configure customer data mappings
+    - Validate ship method configurations
+  </Step>
+  <Step title="Historical Data">
+    - Migrate relevant historical order data (if required)
+    - Set up reporting baselines
+    - Configure analytics and tracking
+    - Establish audit trails
+  </Step>
+  <Step title="Configuration Sync">
+    - Apply all production-specific configurations
+    - Verify integration mappings
+    - Test all critical workflows
+    - Validate data accuracy
+  </Step>
+</Steps>
+
+### 4. System Activation
+
+<Accordion title="Activation Sequence">
+  **Phase 1: Infrastructure**
+  1. Deploy production code
+  2. Start monitoring systems
+  3. Verify system health
+  4. Test basic connectivity
+  
+  **Phase 2: Integration**
+  1. Activate API connections
+  2. Start data synchronization
+  3. Verify webhook delivery
+  4. Test order creation
+  
+  **Phase 3: Full Operations**
+  1. Enable all business processes
+  2. Start order processing
+  3. Monitor fulfillment flows
+  4. Validate customer experience
+</Accordion>
+
+## Go-Live Monitoring
+
+### 5. Real-Time Monitoring
+
+<CardGroup cols={2}>
+  <Card
+    title="Technical Metrics"
+    icon="chart-line"
+  >
+    **Monitor Continuously:**
+    - API response times
+    - Error rates and types
+    - Data synchronization latency
+    - System resource utilization
+    - Queue depths and processing rates
+  </Card>
+  <Card
+    title="Business Metrics"
+    icon="trending-up"
+  >
+    **Track Performance:**
+    - Order creation success rates
+    - Inventory accuracy
+    - Fulfillment processing times
+    - Customer notification delivery
+    - Revenue and transaction volumes
+  </Card>
+</CardGroup>
+
+### 6. Issue Response Procedures
+
+<Steps>
+  <Step title="Immediate Response">
+    - Monitor dashboards continuously for first 24 hours
+    - Have technical team on standby
+    - Maintain communication channels with MasonHub
+    - Document all issues and resolutions
+  </Step>
+  <Step title="Escalation Process">
+    - Define clear escalation thresholds
+    - Maintain contact with MasonHub support
+    - Have rollback procedures ready if needed
+    - Communicate status to stakeholders regularly
+  </Step>
+</Steps>
+
+## Validation & Testing
+
+### 7. Production Validation
+
+<Accordion title="Critical Path Testing">
+  **Order-to-Cash Flow:**
+  - [ ] Create test order in production
+  - [ ] Verify order appears in MasonHub OMS
+  - [ ] Confirm inventory allocation
+  - [ ] Validate fulfillment processing
+  - [ ] Check tracking information delivery
+  - [ ] Verify ERP system updates
+  
+  **Inventory Flow:**
+  - [ ] Test inventory level synchronization
+  - [ ] Verify stock allocation accuracy
+  - [ ] Confirm low stock alerts
+  - [ ] Validate inbound receipt processing
+</Accordion>
+
+### 8. Customer Experience Validation
+
+<CardGroup cols={2}>
+  <Card
+    title="Order Processing"
+    icon="shopping-cart"
+  >
+    - Order creation speed and accuracy
+    - Inventory availability checks
+    - Shipping method selection
+    - Order confirmation delivery
+  </Card>
+  <Card
+    title="Fulfillment Experience"
+    icon="truck"
+  >
+    - Pick, pack, and ship timing
+    - Tracking information accuracy
+    - Shipping notification delivery
+    - Customer service integration
+  </Card>
+</CardGroup>
+
+## Post-Go-Live Activities
+
+### 9. Immediate Post-Launch (24-48 hours)
+
+<Steps>
+  <Step title="Intensive Monitoring">
+    - Monitor all systems continuously
+    - Review all transactions and data flows
+    - Address any performance issues immediately
+    - Maintain enhanced support coverage
+  </Step>
+  <Step title="Issue Resolution">
+    - Document any problems encountered
+    - Implement fixes promptly
+    - Communicate status to stakeholders
+    - Update procedures based on learnings
+  </Step>
+</Steps>
+
+### 10. Extended Monitoring (First Week)
+
+<Accordion title="Week 1 Activities">
+  **Daily Reviews:**
+  - [ ] System performance analysis
+  - [ ] Error rate trending
+  - [ ] Business metric validation
+  - [ ] Customer feedback review
+  
+  **Process Optimization:**
+  - [ ] Identify improvement opportunities
+  - [ ] Optimize performance bottlenecks
+  - [ ] Refine monitoring thresholds
+  - [ ] Update documentation
+</Accordion>
+
+## Success Criteria
+
+### 11. Go-Live Success Metrics
+
+<CardGroup cols={2}>
+  <Card
+    title="Technical Success"
+    icon="check-circle"
+  >
+    - API response times < 2 seconds
+    - Error rates < 1%
+    - 99.9% system uptime
+    - Real-time data synchronization
+  </Card>
+  <Card
+    title="Business Success"
+    icon="target"
+  >
+    - Orders processing accurately
+    - Inventory levels synchronized
+    - Customer notifications delivered
+    - No business disruption
+  </Card>
+</CardGroup>
+
+## Rollback Procedures
+
+### 12. Emergency Rollback
+
+<Warning>
+If critical issues arise, be prepared to execute rollback procedures to maintain business continuity.
+</Warning>
+
+<Steps>
+  <Step title="Assess Severity">
+    Determine if issues require immediate rollback or can be resolved in production
+  </Step>
+  <Step title="Execute Rollback">
+    Follow predetermined rollback procedures to revert to previous system
+  </Step>
+  <Step title="Stabilize Operations">
+    Ensure business operations continue normally on previous system
+  </Step>
+  <Step title="Root Cause Analysis">
+    Identify and resolve issues before attempting go-live again
+  </Step>
+</Steps>
+
+## Support During Go-Live
+
+### MasonHub Support
+
+<Card
+  title="Go-Live Support"
+  icon="headset"
+>
+  **Enhanced Support During Launch**
+  
+  MasonHub provides enhanced support during your go-live period:
+  
+  - Dedicated integration specialist availability
+  - Expedited issue resolution
+  - Real-time system monitoring
+  - Direct communication channels
+  
+  **Contact Information:**
+  - Integration Support: [integration-support@masonhub.co](mailto:integration-support@masonhub.co)
+  - Emergency Support: Available through your CSM
+</Card>
+
+## Post-Go-Live Optimization
+
+### 13. Continuous Improvement
+
+<Steps>
+  <Step title="Performance Review (Week 2-4)">
+    - Analyze system performance data
+    - Review business outcomes
+    - Identify optimization opportunities
+    - Plan enhancement roadmap
+  </Step>
+  <Step title="Process Refinement">
+    - Update operational procedures
+    - Optimize integration workflows
+    - Enhance monitoring and alerting
+    - Improve documentation
+  </Step>
+</Steps>
+
+## Congratulations! 🎉
+
+Once your integration is successfully deployed and stable in production, you've completed the MasonHub ERP integration journey. Your systems are now connected, enabling efficient order processing, inventory management, and fulfillment operations.
+
+### Next Steps for Ongoing Success
+
+- Regular performance reviews
+- Continuous monitoring and optimization
+- Staying updated with MasonHub platform enhancements
+- Exploring additional integration opportunities
+
+**Thank you for choosing MasonHub. We look forward to supporting your continued success!**

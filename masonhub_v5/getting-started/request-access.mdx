@@ -1,0 +1,77 @@
+---
+title: 'Request Access'
+description: 'How to request API access and credentials for MasonHub integration'
+---
+
+The first step in your MasonHub integration journey is to request API access and credentials.
+
+## What You'll Need
+
+<CardGroup cols={2}>
+  <Card
+    title="API Bearer Token"
+    icon="key"
+  >
+    Secure authentication token for API calls
+  </Card>
+  <Card
+    title="Sandbox Access"
+    icon="flask"
+  >
+    Access to test environment at sandbox.masonhub.co
+  </Card>
+</CardGroup>
+
+## How to Request Access
+
+<Steps>
+  <Step title="Contact Your MasonHub Representative">
+    Reach out to your assigned MasonHub contact person. If you don't have a direct contact, email us at [integration-support@masonhub.co](mailto:integration-support@masonhub.co).
+  </Step>
+  <Step title="Request Required Resources">
+    Specifically request:
+    - A one-time secure link to retrieve your **API bearer token**
+    - Access to the **MasonHub OMS Sandbox** at [https://sandbox.masonhub.co](https://sandbox.masonhub.co)
+  </Step>
+  <Step title="Secure Token Storage">
+    Once you receive your API token, store it securely using your organization's credential management system.
+  </Step>
+</Steps>
+
+## Security Best Practices
+
+<Warning>
+**Important Security Note**: Your API bearer token provides access to your MasonHub account. Never share it publicly or store it in version control systems.
+</Warning>
+
+### Recommended Storage Methods
+
+- **Environment Variables**: Store in secure environment variables
+- **Secret Management**: Use tools like AWS Secrets Manager, Azure Key Vault, or similar
+- **Configuration Files**: Store in encrypted configuration files (not in source code)
+
+## What Happens Next
+
+After your access request is processed:
+
+1. **Token Delivery**: You'll receive a secure link to retrieve your API token
+2. **Sandbox Access**: Your account will be provisioned in the sandbox environment
+3. **Documentation Access**: You'll have access to detailed API documentation
+4. **Support Channel**: Direct line to our integration support team
+
+## Contact Information
+
+<Card
+  title="Need Help?"
+  icon="envelope"
+>
+  **Integration Support Team**
+  
+  Email: [integration-support@masonhub.co](mailto:integration-support@masonhub.co)
+  
+  Response Time: Within 24 hours during business days
+</Card>
+
+## Next Steps
+
+Once you have your credentials, proceed to [review the API documentation](/getting-started/review-documentation) to understand the available endpoints and integration patterns.

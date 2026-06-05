@@ -1,0 +1,206 @@
+---
+title: 'Generate New Bearer Token'
+description: 'Generate a new JWT bearer token using a secret phrase'
+api: 'POST /secrets'
+---
+
+Generate a new JWT bearer token for authenticating API requests. Bearer tokens provide secure access to all MasonHub API endpoints.
+
+<Note>
+Tokens are encrypted and not stored in databases. They are decrypted and verified at request time for enhanced security.
+</Note>
+
+## Request Body
+
+<ParamField body="secret_phrase" type="string" required>
+  Your secure secret phrase. This phrase is used to generate and later manage your tokens. Store it securely as you'll need it to delete the token.
+</ParamField>
+
+## Secret Phrase Requirements
+
+Your secret phrase should be:
+- **Unique**: Different from passwords or other credentials
+- **Complex**: Include multiple words, numbers, and special characters
+- **Memorable**: You'll need it for token management operations
+- **Secure**: Not easily guessable or derivable
+
+### Example Secret Phrases
+
+```
+"Marketing Campaign 2024 - Secure Token #1!"
+"Production API Access - Department Finance v2.1"
+"Integration Testing Token - Project Phoenix @2024"
+```
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/secrets" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "secret_phrase": "My name is Inigo Montoya. As You WISH!!! You must have studied to be a greeper."
+  }'
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/secrets"
+headers = {
+    "Content-Type": "application/json"
+}
+payload = {
+    "secret_phrase": "My name is Inigo Montoya. As You WISH!!! You must have studied to be a greeper."
+}
+
+response = requests.post(url, headers=headers, json=payload)
+token = response.json()["encrypted_token"]
+print(f"Your bearer token: {token}")
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/secrets', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    secret_phrase: "My name is Inigo Montoya. As You WISH!!! You must have studied to be a greeper."
+  })
+});
+
+const data = await response.json();
+const token = data.encrypted_token;
+console.log(`Your bearer token: ${token}`);
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "encrypted_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+}
+```
+
+```json 400 Bad Request
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Secret phrase is required",
+    "details": {
+      "field": "secret_phrase"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Using Your Token
+
+Once generated, include your bearer token in all API requests:
+
+### Authentication Header Format
+
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### Complete API Request Example
+
+```bash
+curl -X GET "https://app.masonhub.co/{account}/api/v1/skus?limit=10" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json"
+```
+
+## Environment-Specific Tokens
+
+<Tabs>
+  <Tab title="Sandbox">
+    Generate tokens for sandbox testing:
+
+    ```bash
+    curl -X POST https://sandbox.masonhub.co/account/api/v1/secrets \
+      -H "Content-Type: application/json" \
+      -d '{"secret_phrase": "Sandbox Testing Token 2024"}'
+    ```
+
+    Use different secret phrases for sandbox to keep environments separate.
+  </Tab>
+  <Tab title="Production">
+    Generate tokens for production:
+
+    ```bash
+    curl -X POST https://app.masonhub.co/account/api/v1/secrets \
+      -H "Content-Type: application/json" \
+      -d '{"secret_phrase": "Production API Token - Secure Phrase 2024"}'
+    ```
+
+    Use strong, unique secret phrases for production tokens.
+  </Tab>
+</Tabs>
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Environment Variables" icon="key">
+    Store tokens in environment variables, never in source code
+  </Card>
+  <Card title="Secure Vaults" icon="vault">
+    Use credential management systems like AWS Secrets Manager or HashiCorp Vault
+  </Card>
+  <Card title="Token Rotation" icon="rotate">
+    Regularly rotate tokens by generating new ones and deleting old secret phrases
+  </Card>
+  <Card title="Environment Separation" icon="divide">
+    Use different tokens for sandbox and production environments
+  </Card>
+</CardGroup>
+
+## Token Rotation Strategy
+
+Implement regular token rotation for security:
+
+<Steps>
+  <Step title="Generate New Token">
+    Create a new token with a different secret phrase
+  </Step>
+  <Step title="Update Applications">
+    Deploy the new token to your applications
+  </Step>
+  <Step title="Test Functionality">
+    Verify all integrations work with the new token
+  </Step>
+  <Step title="Delete Old Phrase">
+    Use [Delete Secret Phrase](/api-reference/tokens/delete-secret-phrase) to invalidate the old token
+  </Step>
+</Steps>
+
+## Token Validation
+
+Test your new token with a simple API call:
+
+```bash
+curl -X GET "https://app.masonhub.co/{account}/api/v1/skus?limit=1" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+```
+
+<Tip>
+Store your secret phrase securely. You'll need it to delete the token later. If you lose the secret phrase, you'll need to contact support to revoke the token.
+</Tip>
+
+## Common Errors
+
+<AccordionGroup>
+  <Accordion title="401 Unauthorized">
+    Your token is missing, invalid, or expired. Generate a new token.
+  </Accordion>
+
+  <Accordion title="403 Forbidden">
+    Your token is valid but doesn't have sufficient permissions for the requested operation.
+  </Accordion>
+
+  <Accordion title="Malformed Token">
+    The token format is incorrect. Ensure you're using the complete token string including the Bearer prefix.
+  </Accordion>
+</AccordionGroup>

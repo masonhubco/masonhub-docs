@@ -1,0 +1,282 @@
+---
+title: 'Delete Returns'
+description: 'Delete return authorizations (RMA) by customer identifier'
+api: 'DELETE /rmas'
+---
+
+Delete return merchandise authorizations (RMA) that are no longer needed. This endpoint performs a logical deletion for audit purposes.
+
+<Warning>
+Only RMAs in `open` status can be deleted. Returns that have been tendered to carriers or received cannot be removed.
+</Warning>
+
+<Note>
+This is a soft delete operation. RMAs are marked as deleted but remain in the system for historical tracking and reconciliation.
+</Note>
+
+## Request Body Schema
+
+Send an array of objects containing the customer identifiers of RMAs to delete.
+
+<ParamField body="customer_identifier" type="string" required>
+  Unique RMA identifier that matches the existing return you want to delete.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X DELETE "https://app.masonhub.co/{account}/api/v1/rmas" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "rma123"
+    },
+    {
+      "customer_identifier": "rma456"
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/rmas"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+payload = [
+    {
+        "customer_identifier": "rma123"
+    },
+    {
+        "customer_identifier": "rma456"
+    }
+]
+
+response = requests.delete(url, headers=headers, data=json.dumps(payload))
+data = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/rmas', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      customer_identifier: "rma123"
+    },
+    {
+      customer_identifier: "rma456"
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 2,
+  "records_processed": 2,
+  "records_failed": 0,
+  "records_succeeded": 2,
+  "results": [
+    {
+      "customer_identifier": "rma123",
+      "status": "deleted",
+      "deleted_at": "2018-12-02T14:30:00Z"
+    },
+    {
+      "customer_identifier": "rma456",
+      "status": "deleted",
+      "deleted_at": "2018-12-02T14:30:00Z"
+    }
+  ]
+}
+```
+
+```json 400 Bad Request - Invalid Status
+{
+  "error": {
+    "code": "INVALID_STATUS",
+    "message": "Cannot delete RMA that is not in 'open' status",
+    "details": {
+      "customer_identifier": "rma123",
+      "current_status": "tendered",
+      "allowed_status": "open"
+    }
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "RMA_NOT_FOUND",
+    "message": "RMA not found",
+    "details": {
+      "customer_identifier": "rma123"
+    }
+  }
+}
+```
+
+```json 207 Multi-Status - Partial Success
+{
+  "records_submitted": 2,
+  "records_processed": 2,
+  "records_failed": 1,
+  "records_succeeded": 1,
+  "results": [
+    {
+      "customer_identifier": "rma123",
+      "status": "deleted",
+      "deleted_at": "2018-12-02T14:30:00Z"
+    }
+  ],
+  "errors": [
+    {
+      "customer_identifier": "rma456",
+      "error": {
+        "code": "INVALID_STATUS",
+        "message": "Cannot delete RMA that is not in 'open' status",
+        "current_status": "received"
+      }
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Delete Behavior
+
+When you delete an RMA:
+
+<Steps>
+  <Step title="Status Validation">
+    System checks that the RMA is in `open` status
+  </Step>
+  <Step title="Soft Delete">
+    RMA is marked as deleted but remains in the system
+  </Step>
+  <Step title="Label Invalidation">
+    Any associated return labels are invalidated
+  </Step>
+  <Step title="Audit Trail">
+    Deletion is logged for tracking and reconciliation
+  </Step>
+</Steps>
+
+## When to Delete RMAs
+
+<AccordionGroup>
+  <Accordion title="Customer Changes Mind">
+    Delete RMAs when customers decide to keep items and cancel the return request.
+  </Accordion>
+
+  <Accordion title="Duplicate Entries">
+    Remove duplicate RMA entries created by mistake.
+  </Accordion>
+
+  <Accordion title="Wrong RMA Created">
+    Delete incorrectly created RMAs and recreate them with the correct information.
+  </Accordion>
+
+  <Accordion title="Return Withdrawn">
+    Remove RMAs when return authorization is withdrawn before shipping.
+  </Accordion>
+</AccordionGroup>
+
+## Status Restrictions
+
+<Warning>
+RMAs can only be deleted when in **open** status. Once an RMA moves to:
+- **tendered**: Package picked up - contact MasonHub support
+- **inTransit**: Package in transit - deletion not allowed
+- **delivered**: Package at facility - deletion not allowed
+- **received**: Items processed - deletion not allowed
+- **undeliverable**: Terminal status - no deletion needed
+</Warning>
+
+## Return Label Invalidation
+
+<Info>
+When you delete an RMA that has a generated return label:
+- The return label URL is invalidated
+- The tracking number is cancelled (if possible)
+- Customer cannot use the label for shipping
+</Info>
+
+If a customer has already printed and used the label, contact MasonHub support to handle the incoming package.
+
+## Batch Operations
+
+You can delete multiple RMAs in a single request. The system processes each deletion independently:
+
+- **Full Success**: All RMAs deleted successfully (HTTP 200)
+- **Partial Success**: Some deletions succeeded, others failed (HTTP 207)
+- **Full Failure**: All deletions failed (HTTP 400)
+
+<Tip>
+When batch deleting, check the response carefully. The API returns detailed information about which RMAs were successfully deleted and which failed, including specific error reasons.
+</Tip>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Check Status First" icon="circle-check">
+    Verify the RMA is still in `open` status before attempting to delete.
+  </Card>
+  <Card title="Handle Partial Success" icon="list-check">
+    In batch operations, handle scenarios where some deletions succeed and others fail.
+  </Card>
+  <Card title="Notify Customers" icon="bell">
+    If a return label was generated, notify customers that the label is no longer valid.
+  </Card>
+  <Card title="Consider Updates" icon="pen">
+    If RMA details changed, consider updating instead of deleting and recreating.
+  </Card>
+</CardGroup>
+
+## Alternative: Cancelling Returns
+
+Instead of deleting an RMA, you may want to:
+
+<AccordionGroup>
+  <Accordion title="Update to Cancelled Status">
+    Some systems prefer to update RMA status to "cancelled" rather than deleting for better audit trails.
+  </Accordion>
+
+  <Accordion title="Keep for Historical Tracking">
+    Maintain RMA records even if not processed for customer service insights and analytics.
+  </Accordion>
+
+  <Accordion title="Add Cancellation Notes">
+    Update the RMA with notes explaining why it was cancelled before deletion.
+  </Accordion>
+</AccordionGroup>
+
+## Recovery from Accidental Deletion
+
+<Info>
+If you accidentally delete an RMA:
+1. You can recreate it using the same `customer_identifier` as long as no new RMA with that identifier has been created
+2. Historical data from the soft delete is maintained in the system
+3. Contact MasonHub support if you need to recover a deleted RMA
+</Info>
+
+## Communication Best Practices
+
+When deleting RMAs:
+
+1. **Inform Customers**: Notify customers that their return authorization is cancelled
+2. **Invalidate Labels**: Clearly communicate that any return labels are no longer valid
+3. **Provide Alternatives**: If the return is still needed, provide new instructions
+4. **Track Deletions**: Maintain your own records of deleted RMAs for customer service purposes

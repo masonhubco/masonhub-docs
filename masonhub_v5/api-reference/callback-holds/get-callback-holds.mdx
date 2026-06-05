@@ -1,0 +1,125 @@
+---
+title: 'Get Callback Holds'
+description: 'List current callback holds by message type'
+api: 'GET /callback_holds'
+---
+
+Retrieve a list of all current callback holds. Callback holds temporarily suspend the delivery of specific message types to your webhook endpoints.
+
+<Note>
+Callback holds are useful during maintenance windows, system upgrades, or when you need to temporarily pause event delivery without unregistering your webhook endpoints.
+</Note>
+
+This endpoint returns all message types that currently have holds placed on them.
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://app.masonhub.co/{account}/api/v1/callback_holds" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/callback_holds"
+headers = {
+    "Authorization": "Bearer your_jwt_token"
+}
+
+response = requests.get(url, headers=headers)
+data = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/callback_holds', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "holds": [
+    "skuInventoryChange",
+    "orderEvent"
+  ]
+}
+```
+
+```json 200 No Holds
+{
+  "holds": []
+}
+```
+
+```json 401 Unauthorized
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing authentication token"
+  }
+}
+```
+</ResponseExample>
+
+## Response Fields
+
+<ResponseField name="holds" type="string[]">
+  Array of message types currently on hold. An empty array indicates no holds are active.
+</ResponseField>
+
+## Common Message Types
+
+The following message types can be placed on hold:
+
+| Message Type | Description |
+|--------------|-------------|
+| `skuInventoryChange` | Inventory level changes for SKUs |
+| `orderEvent` | Order status and lifecycle events |
+| `shipmentEvent` | Shipment tracking and status updates |
+| `inboundReceived` | Inbound shipment receipts |
+
+<Info>
+While holds are active, events are queued but not delivered. When holds are removed, delivery resumes but queued events are not retroactively sent.
+</Info>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Maintenance Windows" icon="wrench">
+    Pause callbacks during scheduled system maintenance to avoid failed deliveries.
+  </Card>
+  <Card title="System Upgrades" icon="arrow-up">
+    Hold events while deploying updates to your webhook processing systems.
+  </Card>
+  <Card title="Debugging" icon="bug">
+    Temporarily pause events while investigating callback processing issues.
+  </Card>
+  <Card title="Load Management" icon="gauge">
+    Control event flow during high-traffic periods or system stress.
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Warning>
+Remember to remove holds after maintenance or debugging is complete. Events that occur during holds are not queued for later delivery.
+</Warning>
+
+<Steps>
+  <Step title="Check Before Maintenance">
+    Use this endpoint to verify current hold status before beginning maintenance.
+  </Step>
+  <Step title="Monitor Duration">
+    Keep track of how long holds remain active to avoid missing important events.
+  </Step>
+  <Step title="Verify Removal">
+    After removing holds, confirm they're cleared using this endpoint.
+  </Step>
+</Steps>

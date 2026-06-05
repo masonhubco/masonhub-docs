@@ -1,0 +1,340 @@
+---
+title: 'Update Returns'
+description: 'Update existing return authorizations (RMA)'
+api: 'PUT /rmas'
+---
+
+Update existing return merchandise authorizations (RMA) with new information. This endpoint supports batch updates of multiple returns in a single request.
+
+<Warning>
+Updates require a full replacement of the RMA data. Include all fields in your request, not just the ones you want to change.
+</Warning>
+
+<Note>
+Only RMAs in certain statuses can be updated. Once a return is received and processed, it cannot be modified.
+</Note>
+
+## Request Body Schema
+
+Send an array of complete RMA objects. The schema is identical to creating returns.
+
+### Required Fields
+
+<ParamField body="customer_identifier" type="string" required>
+  Unique RMA identifier that matches the existing return you want to update.
+</ParamField>
+
+<ParamField body="return_type" type="string" required>
+  Type of return. Options:
+  - `rma_submitted_by_customer` - Customer-initiated return
+  - `quality_control` - Quality control return
+  - `damaged_in_transit` - Damaged during shipping
+  - `wrong_item_shipped` - Incorrect item shipped
+</ParamField>
+
+<ParamField body="line_items" type="array" required>
+  Array of items being returned. Each item must include:
+  - `customer_sku_id` (string, required): Your SKU identifier
+  - `quantity` (integer, required): Quantity being returned
+  - `return_reason_code` (string, required): Reason for return
+  - `return_inventory_status` (string, required): Target inventory status
+  - `customer_order_id` (string, optional): Original order reference
+  - `return_notes` (string, optional): Additional notes
+</ParamField>
+
+### Optional Fields
+
+<ParamField body="manifest_id" type="string">
+  Manifest identifier for grouping related returns.
+</ParamField>
+
+<ParamField body="generate_return_label" type="boolean" default="true">
+  Whether to generate a DHL return label. Requires complete customer address when true.
+</ParamField>
+
+<ParamField body="customer_instructions" type="string">
+  Special handling instructions for warehouse team.
+</ParamField>
+
+### Customer Address Fields
+
+<ParamField body="customer_address_name" type="string">
+  Customer name. Required if `generate_return_label` is true.
+</ParamField>
+
+<ParamField body="customer_address_street_line_one" type="string">
+  Street address line 1. Required if `generate_return_label` is true.
+</ParamField>
+
+<ParamField body="customer_address_street_line_two" type="string">
+  Street address line 2 (apartment, suite, etc.). Optional.
+</ParamField>
+
+<ParamField body="customer_address_city" type="string">
+  City. Required if `generate_return_label` is true.
+</ParamField>
+
+<ParamField body="customer_address_state" type="string">
+  State or province code. Required if `generate_return_label` is true.
+</ParamField>
+
+<ParamField body="customer_address_postal_code" type="string">
+  Postal/ZIP code. Required if `generate_return_label` is true.
+</ParamField>
+
+<ParamField body="customer_address_country_code" type="string">
+  Country code. Required if `generate_return_label` is true.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X PUT "https://app.masonhub.co/{account}/api/v1/rmas" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "rma123",
+      "return_type": "rma_submitted_by_customer",
+      "generate_return_label": true,
+      "customer_address_name": "John Smith",
+      "customer_address_street_line_one": "100 First Ave",
+      "customer_address_street_line_two": "Apt 18",
+      "customer_address_city": "New York",
+      "customer_address_state": "NY",
+      "customer_address_postal_code": "10016",
+      "customer_address_country_code": "US",
+      "customer_instructions": "Updated: Dry clean before restocking",
+      "line_items": [
+        {
+          "customer_order_id": "54321",
+          "customer_sku_id": "shirts872340",
+          "quantity": 2,
+          "return_reason_code": "tooBig",
+          "return_notes": "Updated quantity - both items too large",
+          "return_inventory_status": "quality-control"
+        }
+      ]
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/rmas"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+payload = [
+    {
+        "customer_identifier": "rma123",
+        "return_type": "rma_submitted_by_customer",
+        "generate_return_label": True,
+        "customer_address_name": "John Smith",
+        "customer_address_street_line_one": "100 First Ave",
+        "customer_address_street_line_two": "Apt 18",
+        "customer_address_city": "New York",
+        "customer_address_state": "NY",
+        "customer_address_postal_code": "10016",
+        "customer_address_country_code": "US",
+        "customer_instructions": "Updated: Dry clean before restocking",
+        "line_items": [
+            {
+                "customer_order_id": "54321",
+                "customer_sku_id": "shirts872340",
+                "quantity": 2,
+                "return_reason_code": "tooBig",
+                "return_notes": "Updated quantity - both items too large",
+                "return_inventory_status": "quality-control"
+            }
+        ]
+    }
+]
+
+response = requests.put(url, headers=headers, data=json.dumps(payload))
+data = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/rmas', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      customer_identifier: "rma123",
+      return_type: "rma_submitted_by_customer",
+      generate_return_label: true,
+      customer_address_name: "John Smith",
+      customer_address_street_line_one: "100 First Ave",
+      customer_address_street_line_two: "Apt 18",
+      customer_address_city: "New York",
+      customer_address_state: "NY",
+      customer_address_postal_code: "10016",
+      customer_address_country_code: "US",
+      customer_instructions: "Updated: Dry clean before restocking",
+      line_items: [
+        {
+          customer_order_id: "54321",
+          customer_sku_id: "shirts872340",
+          quantity: 2,
+          return_reason_code: "tooBig",
+          return_notes: "Updated quantity - both items too large",
+          return_inventory_status: "quality-control"
+        }
+      ]
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 1,
+  "records_processed": 1,
+  "records_failed": 0,
+  "records_succeeded": 1,
+  "results": [
+    {
+      "customer_identifier": "rma123",
+      "status": "success",
+      "uri": "https://app.masonhub.co/demo_account/api/v1/rmas?cid=rma123",
+      "updated_at": "2018-12-02T14:30:00Z"
+    }
+  ]
+}
+```
+
+```json 400 Bad Request - Invalid Status
+{
+  "error": {
+    "code": "INVALID_STATUS",
+    "message": "Cannot update RMA that has been received",
+    "details": {
+      "customer_identifier": "rma123",
+      "current_status": "received",
+      "allowed_statuses": ["open", "tendered", "inTransit"]
+    }
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "RMA_NOT_FOUND",
+    "message": "RMA not found",
+    "details": {
+      "customer_identifier": "rma123"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Update Behavior
+
+When you update an RMA:
+
+<Steps>
+  <Step title="Status Validation">
+    System checks that the RMA is in an updatable status
+  </Step>
+  <Step title="Full Replacement">
+    All fields are replaced with the new data (not a partial update)
+  </Step>
+  <Step title="Label Regeneration">
+    If address changes and `generate_return_label` is true, a new label is generated
+  </Step>
+  <Step title="Validation">
+    All business rules and validations are re-applied
+  </Step>
+</Steps>
+
+## Common Update Scenarios
+
+<AccordionGroup>
+  <Accordion title="Correcting Address">
+    Update customer address before the return package is tendered. A new return label will be generated if needed.
+  </Accordion>
+
+  <Accordion title="Modifying Line Items">
+    Add, remove, or change quantities of line items before the return is received. Useful when customers change their return requests.
+  </Accordion>
+
+  <Accordion title="Updating Instructions">
+    Modify handling instructions or return inventory status before items are processed.
+  </Accordion>
+
+  <Accordion title="Changing Return Type">
+    Update the return type classification if the reason for return changes (e.g., from customer return to quality control).
+  </Accordion>
+</AccordionGroup>
+
+## Status Restrictions
+
+<Warning>
+RMAs can only be updated in these statuses:
+- **open**: RMA created, not yet tendered
+- **tendered**: Package picked up (limited updates)
+- **inTransit**: Package in transit (limited updates)
+
+RMAs cannot be updated once they reach:
+- **delivered**: Package at facility - contact support
+- **received**: Items processed - updates not allowed
+- **undeliverable**: Terminal status - create new RMA if needed
+</Warning>
+
+## Return Label Regeneration
+
+When updating an RMA with `generate_return_label: true`:
+
+<Info>
+If the customer address changes, a new return label will be automatically generated with a new tracking number. The old label will be invalidated.
+</Info>
+
+To prevent label regeneration when updating other fields:
+```json
+{
+  "customer_identifier": "rma123",
+  "generate_return_label": false,
+  // ... other fields
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Check Status First" icon="circle-check">
+    Verify the RMA is still in an updatable status before attempting changes.
+  </Card>
+  <Card title="Include All Fields" icon="list-check">
+    Always send complete RMA data, not just changed fields.
+  </Card>
+  <Card title="Validate SKUs" icon="check">
+    Ensure all line item SKUs exist in your catalog before updating.
+  </Card>
+  <Card title="Monitor Status" icon="bell">
+    Use callbacks to track when RMAs move to non-updatable statuses.
+  </Card>
+</CardGroup>
+
+## Batch Updates
+
+You can update multiple RMAs in a single request. The system processes each update independently:
+
+- **Full Success**: All RMAs updated successfully (HTTP 200)
+- **Partial Success**: Some updates succeeded, others failed (HTTP 207)
+- **Full Failure**: All updates failed (HTTP 400)
+
+<Tip>
+When batch updating, check the response carefully. The API returns detailed information about which RMAs were successfully updated and which failed, including specific error reasons.
+</Tip>

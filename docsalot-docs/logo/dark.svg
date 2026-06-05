@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="32" viewBox="0 0 48 32" fill="none">
+  <!-- M Letter - middle point touches bottom -->
+  <path d="M2 30V2L12 30L22 2V30" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- H Letter with bar crossing left leg from outside -->
+  <path d="M32 2V30M24 16H46M46 2V30" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

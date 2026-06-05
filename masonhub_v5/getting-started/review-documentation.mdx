@@ -1,0 +1,139 @@
+---
+title: 'Review Documentation'
+description: 'Essential API documentation and resources for your integration'
+---
+
+Before beginning development, familiarize yourself with the MasonHub API documentation and key resources.
+
+## Primary API Documentation
+
+<Card
+  title="MasonHub API Documentation"
+  icon="book"
+  href="https://docs.masonhub.co/api/v1"
+>
+  Complete API reference with endpoints, parameters, and examples
+</Card>
+
+## Key Documentation Sections
+
+### Core API Endpoints
+
+Review these essential endpoint categories:
+
+<Accordion title="Orders API">
+  - **Create Orders**: Submit new orders to MasonHub
+  - **Get Orders**: Retrieve order status and details
+  - **Update Orders**: Modify existing orders
+  - **Order Events**: Webhook notifications for order changes
+</Accordion>
+
+<Accordion title="SKUs API">
+  - **Create SKUs**: Add products to your catalog
+  - **Update SKUs**: Modify product information
+  - **Get SKUs**: Retrieve product details
+  - **Bulk Operations**: Handle large product catalogs efficiently
+</Accordion>
+
+<Accordion title="Inbound Shipments API">
+  - **Create Inbound Shipments**: Schedule inventory receipts
+  - **Track Receipts**: Monitor receiving progress
+  - **Shipment Events**: Get notified of receipt status changes
+</Accordion>
+
+<Accordion title="Inventory API">
+  - **Inventory Snapshots**: Real-time inventory levels
+  - **Availability Checks**: Verify stock before order creation
+  - **Allocation Management**: Understand committed vs. available inventory
+</Accordion>
+
+## Integration Patterns
+
+### Authentication
+
+All API calls require authentication using your bearer token:
+
+```bash
+curl -H "Authorization: Bearer YOUR_API_TOKEN" \
+     -H "Content-Type: application/json" \
+     https://api.masonhub.co/api/v1/orders
+```
+
+### Rate Limiting
+
+<Note>
+The MasonHub API implements rate limiting to ensure system stability. Review the rate limit headers in API responses and implement appropriate retry logic.
+</Note>
+
+### Error Handling
+
+Understand the API's error response format:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid ship method mapping",
+    "details": {
+      "field": "shipping_service_provider",
+      "value": "invalid_provider"
+    }
+  }
+}
+```
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="Data Factory"
+    icon="factory"
+    href="https://docs.masonhub.co/api/v1#tag/DataFactory"
+  >
+    Generate test data for production simulations
+  </Card>
+  <Card
+    title="Callback Events"
+    icon="webhook"
+    href="https://docs.masonhub.co/api/v1#tag/Callback-Events"
+  >
+    Set up webhooks for real-time notifications
+  </Card>
+</CardGroup>
+
+## Environment Differences
+
+### Sandbox Environment
+- **Base URL**: `https://sandbox-api.masonhub.co`
+- **Purpose**: Testing and development
+- **Data**: Test data that can be safely modified
+
+### Production Environment
+- **Base URL**: `https://api.masonhub.co`
+- **Purpose**: Live operations
+- **Data**: Real customer and order data
+
+<Warning>
+Always develop and test in the sandbox environment before deploying to production.
+</Warning>
+
+## Documentation Tips
+
+<Steps>
+  <Step title="Start with Overview">
+    Read the API overview to understand the general architecture
+  </Step>
+  <Step title="Review Authentication">
+    Understand how to properly authenticate your requests
+  </Step>
+  <Step title="Study Core Endpoints">
+    Focus on the endpoints you'll use most frequently
+  </Step>
+  <Step title="Test with Examples">
+    Use the provided examples to test your understanding
+  </Step>
+</Steps>
+
+## Next Steps
+
+After reviewing the documentation, you're ready to understand the [integration architecture and flows](/integration/architecture-flows).

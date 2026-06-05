@@ -1,0 +1,575 @@
+---
+title: 'Get Order Cancels'
+description: 'Retrieve status and details of order cancellation requests'
+api: 'GET /order_cancel_requests'
+---
+
+Retrieve the status and details of previously submitted order cancellation requests. Use this endpoint to monitor the asynchronous processing of cancellations and verify successful order cancellations.
+
+<Note>
+Cancellation requests are processed asynchronously. Poll this endpoint or configure webhooks to track completion status.
+</Note>
+
+## Query Parameters
+
+Filter and retrieve cancellation requests with these parameters:
+
+<ParamField query="id" type="string">
+  Filter by cancellation request system ID (UUID). Returns specific cancellation request.
+</ParamField>
+
+<ParamField query="cid" type="string">
+  Filter by customer identifier. Returns all cancellation requests for a specific order.
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter by request status:
+  - `pending` - Awaiting processing
+  - `processing` - Currently being processed
+  - `success` - Cancellation completed
+  - `failed` - Cancellation failed
+  - `partial` - Some items canceled, others not
+</ParamField>
+
+<ParamField query="limit" type="integer" default="100">
+  Maximum number of records to return (1-1000).
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Number of records to skip for pagination.
+</ParamField>
+
+<ParamField query="created_after" type="string">
+  Filter requests created after this timestamp (RFC3339 format).
+</ParamField>
+
+<ParamField query="created_before" type="string">
+  Filter requests created before this timestamp (RFC3339 format).
+</ParamField>
+
+<ParamField query="resolved_after" type="string">
+  Filter requests resolved after this timestamp (RFC3339 format).
+</ParamField>
+
+<ParamField query="resolved_before" type="string">
+  Filter requests resolved before this timestamp (RFC3339 format).
+</ParamField>
+
+<ParamField query="reason" type="string">
+  Filter by cancellation reason (e.g., "customer_request", "inventory_unavailable").
+</ParamField>
+
+<RequestExample>
+```bash cURL
+# Get specific cancellation request by ID
+curl -X GET "https://app.masonhub.co/{account}/api/v1/order_cancel_requests?id=7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d" \
+  -H "Authorization: Bearer your_jwt_token"
+
+# Get all cancellation requests for an order
+curl -X GET "https://app.masonhub.co/{account}/api/v1/order_cancel_requests?cid=129374" \
+  -H "Authorization: Bearer your_jwt_token"
+
+# Get pending cancellation requests
+curl -X GET "https://app.masonhub.co/{account}/api/v1/order_cancel_requests?status=pending&limit=50" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/order_cancel_requests"
+headers = {"Authorization": "Bearer your_jwt_token"}
+
+# Check specific cancellation request
+params = {"id": "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d"}
+response = requests.get(url, headers=headers, params=params)
+cancel_status = response.json()
+
+# Get all cancellations for an order
+params = {"cid": "129374"}
+response = requests.get(url, headers=headers, params=params)
+order_cancellations = response.json()
+
+# Monitor pending cancellations
+params = {"status": "pending", "limit": 100}
+response = requests.get(url, headers=headers, params=params)
+pending_cancels = response.json()
+```
+
+```javascript JavaScript
+// Check specific cancellation request
+const response = await fetch(
+  'https://app.masonhub.co/{account}/api/v1/order_cancel_requests?id=7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d',
+  {
+    headers: {
+      'Authorization': 'Bearer your_jwt_token'
+    }
+  }
+);
+const cancelStatus = await response.json();
+
+// Get all cancellations for an order
+const orderCancels = await fetch(
+  'https://app.masonhub.co/{account}/api/v1/order_cancel_requests?cid=129374',
+  {
+    headers: {
+      'Authorization': 'Bearer your_jwt_token'
+    }
+  }
+);
+const cancellations = await orderCancels.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "total_count": 2,
+  "limit": 100,
+  "offset": 0,
+  "cancel_requests": [
+    {
+      "system_id": "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
+      "customer_identifier": "129374",
+      "status": "success",
+      "reason": "customer_request",
+      "notes": "Customer changed their mind before shipment",
+      "requested_by": "customer.service@example.com",
+      "submitted_at": "2024-01-17T10:30:00Z",
+      "resolved_at": "2024-01-17T10:31:45Z",
+      "processing_time_ms": 1450,
+      "cancellation_details": {
+        "items_canceled": 2,
+        "inventory_released": true,
+        "order_status_before": "processing",
+        "order_status_after": "canceled",
+        "refund_required": true
+      }
+    },
+    {
+      "system_id": "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
+      "customer_identifier": "129375",
+      "status": "failed",
+      "reason": "customer_request",
+      "notes": "Attempted cancellation after shipment",
+      "requested_by": "support@example.com",
+      "submitted_at": "2024-01-17T11:00:00Z",
+      "resolved_at": "2024-01-17T11:00:05Z",
+      "processing_time_ms": 50,
+      "error": {
+        "code": "ORDER_ALREADY_SHIPPED",
+        "message": "Cannot cancel order that has been shipped",
+        "details": {
+          "order_status": "fulfilled",
+          "shipped_at": "2024-01-17T09:00:00Z",
+          "tracking_number": "1Z999AA10123456784"
+        }
+      }
+    }
+  ]
+}
+```
+
+```json Partial Cancellation Response
+{
+  "cancel_requests": [
+    {
+      "system_id": "9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f",
+      "customer_identifier": "129376",
+      "status": "partial",
+      "reason": "inventory_unavailable",
+      "notes": "Stock shortage discovered during picking",
+      "requested_by": "warehouse@masonhub.co",
+      "submitted_at": "2024-01-17T08:00:00Z",
+      "resolved_at": "2024-01-17T08:02:00Z",
+      "processing_time_ms": 2000,
+      "cancellation_details": {
+        "requested_items": 5,
+        "items_canceled": 3,
+        "items_shipped": 2,
+        "partial_reason": "2 items already packed and shipped",
+        "shipments_affected": ["SHIP-001"],
+        "line_items_canceled": [
+          {
+            "sku_customer_id": "shirts872340",
+            "quantity_canceled": 3
+          }
+        ],
+        "line_items_not_canceled": [
+          {
+            "sku_customer_id": "pants445566",
+            "quantity": 2,
+            "reason": "Already shipped"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "CANCEL_REQUEST_NOT_FOUND",
+    "message": "No cancellation request found with specified ID",
+    "details": {
+      "id": "nonexistent-id"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Response Fields
+
+<ResponseField name="system_id" type="string">
+  Unique identifier for the cancellation request
+</ResponseField>
+
+<ResponseField name="customer_identifier" type="string">
+  Your order reference ID
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current status of the cancellation request:
+  - `pending` - Queued for processing
+  - `processing` - Currently being canceled
+  - `success` - Cancellation completed
+  - `failed` - Cancellation could not be completed
+  - `partial` - Some items canceled, others not
+</ResponseField>
+
+<ResponseField name="reason" type="string">
+  Cancellation reason code provided in request
+</ResponseField>
+
+<ResponseField name="notes" type="string">
+  Additional context provided with cancellation
+</ResponseField>
+
+<ResponseField name="requested_by" type="string">
+  Identifier of person/system that requested cancellation
+</ResponseField>
+
+<ResponseField name="submitted_at" type="string">
+  Timestamp when cancellation was requested
+</ResponseField>
+
+<ResponseField name="resolved_at" type="string">
+  Timestamp when processing completed (null if pending)
+</ResponseField>
+
+<ResponseField name="processing_time_ms" type="integer">
+  Time taken to process the cancellation in milliseconds
+</ResponseField>
+
+<ResponseField name="cancellation_details" type="object">
+  Detailed information about the cancellation:
+  - `items_canceled` - Number of items successfully canceled
+  - `inventory_released` - Whether inventory was released
+  - `order_status_before` - Order status before cancellation
+  - `order_status_after` - Order status after cancellation
+  - `refund_required` - Whether refund processing is needed
+</ResponseField>
+
+<ResponseField name="error" type="object">
+  Error details if cancellation failed
+</ResponseField>
+
+## Cancellation Request Lifecycle
+
+Track cancellation requests through their processing stages:
+
+<Steps>
+  <Step title="pending">
+    Request received and queued for processing
+  </Step>
+  <Step title="processing">
+    System actively canceling the order:
+    - Stopping fulfillment processes
+    - Releasing inventory allocations
+    - Updating order status
+  </Step>
+  <Step title="Resolution">
+    Final status determined:
+    - `success` - Order fully canceled
+    - `failed` - Cancellation not possible
+    - `partial` - Some items canceled
+  </Step>
+</Steps>
+
+## Polling Implementation
+
+Efficiently monitor cancellation status with polling:
+
+```python
+import time
+import requests
+
+def monitor_cancellation(cancel_id, headers, max_wait=300):
+    """
+    Poll for cancellation completion with exponential backoff
+    """
+    url = f"https://app.masonhub.co/{{account}}/api/v1/order_cancel_requests"
+    start_time = time.time()
+    poll_interval = 5  # Start with 5 seconds
+
+    while time.time() - start_time < max_wait:
+        response = requests.get(
+            url,
+            headers=headers,
+            params={"id": cancel_id}
+        )
+
+        data = response.json()
+        if data["cancel_requests"]:
+            request = data["cancel_requests"][0]
+            status = request["status"]
+
+            if status in ["success", "failed", "partial"]:
+                return request
+
+            print(f"Status: {status}, waiting {poll_interval}s...")
+
+        time.sleep(poll_interval)
+        # Exponential backoff, max 60 seconds
+        poll_interval = min(poll_interval * 1.5, 60)
+
+    raise TimeoutError(f"Cancellation {cancel_id} not resolved in {max_wait}s")
+
+# Usage
+result = monitor_cancellation("7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d", headers)
+print(f"Cancellation {result['status']}: {result.get('cancellation_details')}")
+```
+
+## Cancellation Scenarios
+
+Different cancellation outcomes and their handling:
+
+<Tabs>
+  <Tab title="Full Cancellation">
+    Entire order successfully canceled:
+
+    ```json
+    {
+      "status": "success",
+      "cancellation_details": {
+        "items_canceled": 5,
+        "inventory_released": true,
+        "order_status_after": "canceled",
+        "refund_required": true
+      }
+    }
+    ```
+
+    **Next Steps:**
+    - Process refund if payment captured
+    - Send cancellation confirmation to customer
+    - Update internal order tracking
+  </Tab>
+
+  <Tab title="Partial Cancellation">
+    Some items canceled, others proceeding:
+
+    ```json
+    {
+      "status": "partial",
+      "cancellation_details": {
+        "requested_items": 5,
+        "items_canceled": 2,
+        "items_shipped": 3,
+        "partial_reason": "3 items already in shipment"
+      }
+    }
+    ```
+
+    **Next Steps:**
+    - Process partial refund
+    - Notify customer of partial fulfillment
+    - Consider return process for shipped items
+  </Tab>
+
+  <Tab title="Failed Cancellation">
+    Cancellation not possible:
+
+    ```json
+    {
+      "status": "failed",
+      "error": {
+        "code": "ORDER_ALREADY_SHIPPED",
+        "message": "Cannot cancel shipped order"
+      }
+    }
+    ```
+
+    **Next Steps:**
+    - Initiate return process if needed
+    - Inform customer about return options
+    - Update cancellation request tracking
+  </Tab>
+</Tabs>
+
+## Common Error Codes
+
+<AccordionGroup>
+  <Accordion title="ORDER_ALREADY_SHIPPED">
+    Order has been shipped and cannot be canceled
+
+    ```json
+    {
+      "code": "ORDER_ALREADY_SHIPPED",
+      "shipped_at": "2024-01-17T09:00:00Z",
+      "tracking_number": "1Z999AA10123456784"
+    }
+    ```
+
+    **Resolution:** Initiate return process instead
+  </Accordion>
+
+  <Accordion title="ORDER_NOT_FOUND">
+    No order exists with provided customer identifier
+
+    ```json
+    {
+      "code": "ORDER_NOT_FOUND",
+      "customer_identifier": "invalid-id"
+    }
+    ```
+
+    **Resolution:** Verify order ID and retry
+  </Accordion>
+
+  <Accordion title="DUPLICATE_CANCELLATION">
+    Cancellation already requested for this order
+
+    ```json
+    {
+      "code": "DUPLICATE_CANCELLATION",
+      "existing_request_id": "previous-cancel-id",
+      "existing_status": "pending"
+    }
+    ```
+
+    **Resolution:** Check status of existing request
+  </Accordion>
+
+  <Accordion title="ORDER_ALREADY_CANCELED">
+    Order was previously canceled
+
+    ```json
+    {
+      "code": "ORDER_ALREADY_CANCELED",
+      "canceled_at": "2024-01-16T12:00:00Z"
+    }
+    ```
+
+    **Resolution:** No action needed
+  </Accordion>
+</AccordionGroup>
+
+## Bulk Cancellation Monitoring
+
+Monitor multiple cancellation requests efficiently:
+
+```javascript
+async function checkBulkCancellations(cancelIds, headers) {
+  const results = {};
+
+  // Check all cancellations in parallel
+  const promises = cancelIds.map(async (id) => {
+    const response = await fetch(
+      `https://app.masonhub.co/{account}/api/v1/order_cancel_requests?id=${id}`,
+      { headers }
+    );
+    const data = await response.json();
+    return { id, data };
+  });
+
+  const responses = await Promise.all(promises);
+
+  // Organize results by status
+  responses.forEach(({ id, data }) => {
+    if (data.cancel_requests && data.cancel_requests.length > 0) {
+      const status = data.cancel_requests[0].status;
+      if (!results[status]) results[status] = [];
+      results[status].push(data.cancel_requests[0]);
+    }
+  });
+
+  return results;
+}
+
+// Usage
+const cancelIds = ["id1", "id2", "id3"];
+const statusGroups = await checkBulkCancellations(cancelIds, headers);
+console.log(`Successful: ${statusGroups.success?.length || 0}`);
+console.log(`Failed: ${statusGroups.failed?.length || 0}`);
+console.log(`Pending: ${statusGroups.pending?.length || 0}`);
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Webhooks" icon="webhook">
+    Configure [orderCancelResolution](/api-reference/callback-events/order-cancel-resolutions) callbacks for instant notifications
+  </Card>
+  <Card title="Handle Partials" icon="circle-half-stroke">
+    Check cancellation_details for partial cancellations requiring special handling
+  </Card>
+  <Card title="Track Request IDs" icon="fingerprint">
+    Store system_id from submission for reliable tracking
+  </Card>
+  <Card title="Implement Retry Logic" icon="rotate">
+    Retry failed cancellations with corrected data when appropriate
+  </Card>
+</CardGroup>
+
+<Warning>
+Cancellation requests older than 30 days may be archived and unavailable. Store important cancellation history in your own system.
+</Warning>
+
+## Webhook Configuration
+
+For real-time cancellation updates, configure webhooks:
+
+```bash
+POST /callbacks
+{
+  "callback_url": "https://your-api.com/webhooks/order-cancels",
+  "event_type": "orderCancelResolution"
+}
+```
+
+You'll receive notifications when cancellations complete:
+
+```json
+{
+  "message_type": "orderCancelResolution",
+  "data": [
+    {
+      "cancel_request_id": "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
+      "customer_identifier": "129374",
+      "status": "success",
+      "resolved_at": "2024-01-17T10:31:45Z",
+      "items_canceled": 2
+    }
+  ]
+}
+```
+
+<Tip>
+Combine polling for immediate checks with webhooks for asynchronous notifications. This provides both responsive UI updates and efficient background processing.
+</Tip>
+
+## Related Endpoints
+
+- [Cancel Orders](/api-reference/orders/cancel-orders) - Submit cancellation requests
+- [Get Orders](/api-reference/orders/get-orders) - Check current order status
+- [Order Cancel Resolutions](/api-reference/callback-events/order-cancel-resolutions) - Webhook configuration
+- [Create Returns](/api-reference/returns/create-returns) - For already shipped orders
+
+## Sources
+
+- [Create, Edit & Cancel Orders | MasonHub API – MasonHub](https://support.masonhub.co/hc/en-us/articles/360052470011-Create-Edit-Cancel-Orders-MasonHub-API)
+- [Order Updates :: MasonHub Documentation](https://docs.masonhub.co/releases/order_updates/)

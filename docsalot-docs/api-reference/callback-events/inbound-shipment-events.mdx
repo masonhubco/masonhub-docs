@@ -1,0 +1,404 @@
+---
+title: 'Inbound Shipment Events'
+description: 'Webhook event sent when inbound shipment status changes during the receiving process'
+---
+
+Inbound Shipment Events provide real-time updates as your inventory shipments arrive and are received at MasonHub distribution centers. Track the receiving process from dock arrival through final inventory putaway.
+
+<Note>
+Inventory becomes available for sale only after receiving is complete and items are processed through quality control.
+</Note>
+
+## Event Payload
+
+```json
+{
+  "callback_url": "https://client.com/api/inboundShipmentEvent",
+  "message_type": "inboundShipmentEvent",
+  "message_id": "0896116f-e54b-4756-9d3e-1b0c4a25d821",
+  "data": [
+    {
+      "id": "33455ccc-40f5-431b-81a1-44098f8a92bd",
+      "customer_identifier": "shipment32432",
+      "status": "receivingComplete",
+      "as_of": "2018-12-11T15:53:23Z",
+      "details": {
+        "inventory_location_address": "MasonHub Rancho | 1 Mason Way Rancho Cucomunga, CA 97130",
+        "arrived_at": "2018-12-11T09:15:00Z",
+        "started_receiving_at": "2018-12-11T11:01:24Z",
+        "finished_receiving_at": "2018-12-11T15:53:23Z",
+        "line_items": [
+          {
+            "customer_sku_id": "shirt-534212",
+            "quantity": 100,
+            "total_quantity_received": 90,
+            "not_on_original_shipment": false
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+## Payload Fields
+
+<ResponseField name="callback_url" type="string">
+  Your registered webhook endpoint URL
+</ResponseField>
+
+<ResponseField name="message_type" type="string">
+  Always `inboundShipmentEvent` for this event type
+</ResponseField>
+
+<ResponseField name="message_id" type="string">
+  Unique identifier for this event. Use for idempotency checks.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of shipment status updates. Each record contains:
+
+  <Expandable title="Shipment Data">
+    <ResponseField name="id" type="string">
+      MasonHub internal UUID for the inbound shipment
+    </ResponseField>
+
+    <ResponseField name="customer_identifier" type="string">
+      Your shipment identifier
+    </ResponseField>
+
+    <ResponseField name="status" type="string">
+      Current shipment status (see status values below)
+    </ResponseField>
+
+    <ResponseField name="as_of" type="string">
+      Timestamp of this status update (RFC3339)
+    </ResponseField>
+
+    <ResponseField name="details" type="object">
+      Detailed shipment information
+
+      <Expandable title="Details Object">
+        <ResponseField name="inventory_location_address" type="string">
+          Receiving warehouse address
+        </ResponseField>
+
+        <ResponseField name="arrived_at" type="string">
+          Timestamp when shipment arrived at dock (RFC3339)
+        </ResponseField>
+
+        <ResponseField name="started_receiving_at" type="string">
+          Timestamp when receiving process started (RFC3339)
+        </ResponseField>
+
+        <ResponseField name="finished_receiving_at" type="string">
+          Timestamp when receiving completed (RFC3339)
+        </ResponseField>
+
+        <ResponseField name="line_items" type="array">
+          Array of items in the shipment
+
+          <Expandable title="Line Item Details">
+            <ResponseField name="customer_sku_id" type="string">
+              Your SKU identifier
+            </ResponseField>
+
+            <ResponseField name="quantity" type="integer">
+              Expected quantity on original ASN (Advanced Ship Notice)
+            </ResponseField>
+
+            <ResponseField name="total_quantity_received" type="integer">
+              Actual quantity received during processing
+            </ResponseField>
+
+            <ResponseField name="not_on_original_shipment" type="boolean">
+              True if item was received but not on original ASN
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Shipment Status Values
+
+<Steps>
+  <Step title="onDock">
+    Shipment arrived at facility dock - awaiting processing
+  </Step>
+  <Step title="receivingStarted">
+    Receiving process has begun - items being counted and inspected
+  </Step>
+  <Step title="receivingComplete">
+    All items processed and added to inventory
+  </Step>
+</Steps>
+
+## Receiving Discrepancies
+
+The `total_quantity_received` may differ from the expected `quantity` due to:
+
+<CardGroup cols={2}>
+  <Card title="Shortages" icon="minus">
+    Fewer items received than expected - investigate with carrier
+  </Card>
+  <Card title="Overages" icon="plus">
+    More items received than expected - verify with supplier
+  </Card>
+  <Card title="Damages" icon="triangle-exclamation">
+    Items damaged in transit - may be rejected or marked damaged
+  </Card>
+  <Card title="Unexpected Items" icon="box">
+    Items not on ASN (`not_on_original_shipment: true`)
+  </Card>
+</CardGroup>
+
+## Example Scenarios
+
+### Complete Receipt - All Items Received
+
+```json
+{
+  "status": "receivingComplete",
+  "details": {
+    "line_items": [
+      {
+        "customer_sku_id": "shirt-534212",
+        "quantity": 100,
+        "total_quantity_received": 100,
+        "not_on_original_shipment": false
+      }
+    ]
+  }
+}
+```
+
+### Partial Receipt - Shortage
+
+```json
+{
+  "status": "receivingComplete",
+  "details": {
+    "line_items": [
+      {
+        "customer_sku_id": "shirt-534212",
+        "quantity": 100,
+        "total_quantity_received": 90,
+        "not_on_original_shipment": false
+      }
+    ]
+  }
+}
+```
+<Warning>10 units short - investigate with carrier and file claim if needed</Warning>
+
+### Unexpected Item Received
+
+```json
+{
+  "status": "receivingComplete",
+  "details": {
+    "line_items": [
+      {
+        "customer_sku_id": "shirt-534212",
+        "quantity": 100,
+        "total_quantity_received": 100,
+        "not_on_original_shipment": false
+      },
+      {
+        "customer_sku_id": "pants-9876",
+        "quantity": 0,
+        "total_quantity_received": 25,
+        "not_on_original_shipment": true
+      }
+    ]
+  }
+}
+```
+<Note>Extra item received - verify with supplier if this was intentional</Note>
+
+## Implementation Example
+
+```python Python
+@app.route('/api/inboundShipmentEvent', methods=['POST'])
+def handle_inbound_shipment_event():
+    try:
+        payload = request.get_json()
+        message_id = payload['message_id']
+
+        # Check if already processed
+        if is_message_processed(message_id):
+            return 'OK', 200
+
+        # Process each shipment update
+        for shipment in payload['data']:
+            shipment_id = shipment['customer_identifier']
+            status = shipment['status']
+            details = shipment.get('details', {})
+
+            # Update shipment status
+            update_shipment_status(shipment_id, status)
+
+            if status == 'onDock':
+                logger.info(f"Shipment {shipment_id} arrived at dock")
+                notify_ops_team_shipment_arrived(shipment_id)
+
+            elif status == 'receivingStarted':
+                started_at = details.get('started_receiving_at')
+                logger.info(f"Receiving started for {shipment_id}")
+
+            elif status == 'receivingComplete':
+                # Process line items
+                line_items = details.get('line_items', [])
+
+                for item in line_items:
+                    sku = item['customer_sku_id']
+                    expected = item['quantity']
+                    received = item['total_quantity_received']
+                    unexpected = item['not_on_original_shipment']
+
+                    # Update inventory records
+                    update_inventory_received(sku, received)
+
+                    # Check for discrepancies
+                    if received < expected:
+                        shortage = expected - received
+                        log_shortage(shipment_id, sku, shortage)
+                        alert_ops_team_shortage(shipment_id, sku, shortage)
+
+                    elif received > expected:
+                        overage = received - expected
+                        log_overage(shipment_id, sku, overage)
+
+                    if unexpected:
+                        log_unexpected_item(shipment_id, sku, received)
+                        notify_supplier_unexpected_item(shipment_id, sku)
+
+                logger.info(f"Receiving complete for {shipment_id}")
+
+        mark_message_processed(message_id)
+        return 'OK', 200
+
+    except Exception as e:
+        logger.error(f"Inbound shipment webhook error: {e}")
+        return 'Error', 500
+```
+
+```javascript JavaScript
+app.post('/api/inboundShipmentEvent', async (req, res) => {
+  try {
+    const payload = req.body;
+    const messageId = payload.message_id;
+
+    // Check if already processed
+    if (await isMessageProcessed(messageId)) {
+      return res.status(200).send('OK');
+    }
+
+    // Process each shipment update
+    for (const shipment of payload.data) {
+      const shipmentId = shipment.customer_identifier;
+      const status = shipment.status;
+      const details = shipment.details || {};
+
+      // Update shipment status
+      await updateShipmentStatus(shipmentId, status);
+
+      if (status === 'onDock') {
+        console.log(`Shipment ${shipmentId} arrived at dock`);
+        await notifyOpsTeamShipmentArrived(shipmentId);
+
+      } else if (status === 'receivingStarted') {
+        console.log(`Receiving started for ${shipmentId}`);
+
+      } else if (status === 'receivingComplete') {
+        // Process line items
+        const lineItems = details.line_items || [];
+
+        for (const item of lineItems) {
+          const sku = item.customer_sku_id;
+          const expected = item.quantity;
+          const received = item.total_quantity_received;
+
+          // Update inventory
+          await updateInventoryReceived(sku, received);
+
+          // Check for discrepancies
+          if (received < expected) {
+            const shortage = expected - received;
+            await logShortage(shipmentId, sku, shortage);
+            await alertOpsTeamShortage(shipmentId, sku, shortage);
+
+          } else if (received > expected) {
+            const overage = received - expected;
+            await logOverage(shipmentId, sku, overage);
+          }
+
+          if (item.not_on_original_shipment) {
+            await logUnexpectedItem(shipmentId, sku, received);
+            await notifySupplierUnexpectedItem(shipmentId, sku);
+          }
+        }
+
+        console.log(`Receiving complete for ${shipmentId}`);
+      }
+    }
+
+    await markMessageProcessed(messageId);
+    res.status(200).send('OK');
+
+  } catch (error) {
+    console.error('Inbound shipment webhook error:', error);
+    res.status(500).send('Error');
+  }
+});
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Inventory Tracking" icon="boxes-stacked">
+    Monitor receiving progress and update inventory forecasts
+  </Card>
+  <Card title="Discrepancy Management" icon="magnifying-glass">
+    Identify and resolve shortages, overages, and damages
+  </Card>
+  <Card title="Supply Chain Visibility" icon="truck-ramp-box">
+    Track shipment timelines from arrival to inventory availability
+  </Card>
+  <Card title="Supplier Performance" icon="chart-bar">
+    Monitor supplier accuracy and shipment quality
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Monitor Discrepancies" icon="clipboard-check">
+    Track shortages and overages to identify patterns
+  </Card>
+  <Card title="Alert Operations" icon="bell">
+    Notify teams immediately when issues are detected
+  </Card>
+  <Card title="Update Forecasts" icon="chart-line">
+    Adjust inventory availability based on actual receipts
+  </Card>
+  <Card title="Document Issues" icon="file-lines">
+    Log all discrepancies for carrier claims and supplier resolution
+  </Card>
+</CardGroup>
+
+## Response Requirements
+
+Your webhook endpoint must:
+
+1. **Respond within 30 seconds** - Return HTTP 200 to acknowledge receipt
+2. **Handle all statuses** - Support onDock, receivingStarted, receivingComplete
+3. **Process discrepancies** - Compare expected vs received quantities
+4. **Update inventory** - Reflect actual received quantities in your system
+
+## Related Events
+
+- [SKU Inventory Change Event](/api-reference/callback-events/sku-inventory-change-event) - Triggered when received inventory is added to available stock
+- [Snapshot Ready](/api-reference/callback-events/snapshot-ready) - Full inventory reconciliation after receiving

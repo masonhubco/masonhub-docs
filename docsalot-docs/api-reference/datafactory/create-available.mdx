@@ -1,0 +1,133 @@
+---
+title: 'Create Available Inventory'
+description: 'Simulate adding inventory in available status (Sandbox only)'
+api: 'POST /data_factory/createAvailable'
+---
+
+Simulate adding inventory in 'available' status for testing integration workflows in the sandbox environment.
+
+<Warning>
+DataFactory is only available in the sandbox environment. These endpoints are for testing purposes only.
+</Warning>
+
+<Note>
+This operation triggers **skuInventoryChange** callbacks just like real inventory receipts.
+</Note>
+
+## Request Body
+
+Send an array of inventory objects to add.
+
+<ParamField body="sku_id" type="string" required>
+  MasonHub SKU UUID to add inventory for.
+</ParamField>
+
+<ParamField body="quantity" type="integer" required>
+  Quantity of units to add to available inventory.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/data_factory/createAvailable" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      "quantity": 100
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/data_factory/createAvailable"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+payload = [
+    {
+        "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+        "quantity": 100
+    }
+]
+
+response = requests.post(url, headers=headers, data=json.dumps(payload))
+data = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/data_factory/createAvailable', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      sku_id: "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      quantity: 100
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "success": true,
+  "data": [
+    {
+      "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      "quantity_added": 100,
+      "new_available_quantity": 100
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## What This Does
+
+When you create available inventory:
+
+<Steps>
+  <Step title="Add Inventory">
+    The specified quantity is added to the SKU's available inventory
+  </Step>
+  <Step title="Update Totals">
+    Total available-to-sell quantities are updated
+  </Step>
+  <Step title="Trigger Callbacks">
+    **skuInventoryChange** callbacks are sent to registered endpoints
+  </Step>
+</Steps>
+
+## Testing Workflows
+
+<CardGroup cols={2}>
+  <Card title="Order Fulfillment Tests" icon="box">
+    Add inventory before creating test orders to ensure sufficient stock.
+  </Card>
+  <Card title="Callback Validation" icon="bell">
+    Verify your system receives and processes inventory change callbacks.
+  </Card>
+  <Card title="Integration Tests" icon="code">
+    Build end-to-end test scenarios with predictable inventory levels.
+  </Card>
+  <Card title="Load Testing" icon="chart-line">
+    Create large inventory quantities for performance testing.
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Tip>
+Use consistent, predictable SKU IDs in your test data for easier debugging and test maintenance.
+</Tip>

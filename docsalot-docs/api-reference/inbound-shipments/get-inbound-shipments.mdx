@@ -1,0 +1,202 @@
+---
+title: 'Get Inbound Shipments'
+description: 'Retrieve inbound shipment information with comprehensive filtering options'
+api: 'GET /inbound_shipments'
+---
+
+The Inbound Shipments API, also known as ASN (Advance Ship Notice), manages incoming inventory shipments to MasonHub distribution centers. This endpoint allows you to retrieve inbound shipment information with powerful filtering capabilities.
+
+<Note>
+Inbound shipments automatically update expected inventory totals and trigger **skuInventoryChange** callbacks when created.
+</Note>
+
+## Query Parameters
+
+<ParamField query="id" type="UUID[]">
+  MasonHub UUID strings. Supports batching 1-30 IDs per request.
+</ParamField>
+
+<ParamField query="cid" type="string[]">
+  Customer identifiers. Supports batching 1-30 identifiers per request.
+</ParamField>
+
+<ParamField query="cpid" type="string[]">
+  Customer purchase order IDs for filtering shipments.
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter by shipment status. Options:
+  - `open` - Shipment created, awaiting arrival
+  - `onDock` - Shipment has arrived at facility
+  - `receivingStarted` - Receiving process has begun
+  - `receivingComplete` - All items have been received
+</ParamField>
+
+<ParamField query="sdt" type="string">
+  Start date/time filter in RFC3339 format (e.g., `2018-12-01T00:00:00Z`).
+</ParamField>
+
+<ParamField query="edt" type="string">
+  End date/time filter in RFC3339 format (e.g., `2018-12-31T23:59:59Z`).
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Pagination offset for retrieving subsequent pages of results.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="30">
+  Number of results to return. Range: 1-100.
+</ParamField>
+
+<ParamField query="list_type" type="string" default="detail">
+  Response detail level. Options:
+  - `detail` - Full shipment information including all fields
+  - `summary` - Condensed view with essential fields only
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://app.masonhub.co/{account}/api/v1/inbound_shipments?status=open&sdt=2018-12-01T00:00:00Z&limit=25" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/inbound_shipments"
+headers = {
+    "Authorization": "Bearer your_jwt_token"
+}
+params = {
+    "status": "open",
+    "sdt": "2018-12-01T00:00:00Z",
+    "limit": 25
+}
+
+response = requests.get(url, headers=headers, params=params)
+data = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/inbound_shipments?status=open&sdt=2018-12-01T00:00:00Z&limit=25', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "limit": 25,
+  "offset": 0,
+  "list_type": "detail",
+  "data": [
+    {
+      "id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+      "customer_identifier": "shipment32432",
+      "customer_purchase_order_id": "po234532",
+      "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+      "status": "open",
+      "expected_arrival_date": "2018-12-11T10:00:00Z",
+      "shipper_name": "Freddie's Pirate Army",
+      "tracking_number": "356732154",
+      "shipper_city": "Kalamazoo",
+      "shipper_locale": "MI",
+      "shipper_country": "US",
+      "carrier_information": {
+        "name": "Frankie's Red Hot Carrier",
+        "type": "TL",
+        "contact_name": "John Jacob",
+        "driver_name": "Donny James Jr",
+        "driver_phone": "555-343-4213"
+      },
+      "special_instructions": "Fold using provided template during put away",
+      "comments": "Shipments often not labeled but carrier is reliable",
+      "line_items": [
+        {
+          "customer_sku_id": "10000",
+          "quantity": 80
+        },
+        {
+          "customer_sku_id": "10001",
+          "quantity": 20
+        }
+      ],
+      "created_at": "2018-12-01T08:30:00Z",
+      "updated_at": "2018-12-01T08:30:00Z"
+    }
+  ]
+}
+```
+
+```json 400 Bad Request
+{
+  "error": {
+    "code": "INVALID_PARAMETER",
+    "message": "Too many identifiers provided",
+    "details": {
+      "field": "id",
+      "max_allowed": 30,
+      "provided": 45
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Shipment Status Lifecycle
+
+Understanding the status progression helps you track shipments effectively:
+
+<Steps>
+  <Step title="Open">
+    Shipment created, awaiting arrival at the facility
+  </Step>
+  <Step title="On Dock">
+    Shipment has arrived at the facility and is awaiting processing
+  </Step>
+  <Step title="Receiving Started">
+    The receiving process has begun - items are being processed
+  </Step>
+  <Step title="Receiving Complete">
+    All items have been received and processed into inventory
+  </Step>
+</Steps>
+
+## Batch Queries
+
+You can query multiple shipments in a single request using arrays:
+
+```bash
+# Query by multiple customer identifiers
+GET /inbound_shipments?cid=shipment001&cid=shipment002&cid=shipment003
+
+# Query by date range and status
+GET /inbound_shipments?status=open&sdt=2018-12-01T00:00:00Z&edt=2018-12-31T23:59:59Z
+```
+
+<Warning>
+Maximum 30 identifiers per batch request for `id`, `cid`, or `cpid` parameters. Exceeding this limit will result in a 400 error.
+</Warning>
+
+## Performance Tips
+
+<CardGroup cols={2}>
+  <Card title="Use Date Ranges" icon="calendar">
+    Filter by `sdt` and `edt` to narrow down results instead of retrieving all shipments.
+  </Card>
+  <Card title="Filter by Status" icon="filter">
+    Use the `status` parameter to retrieve only shipments in specific states.
+  </Card>
+  <Card title="Summary Lists" icon="list">
+    Use `list_type=summary` when you only need basic shipment information.
+  </Card>
+  <Card title="Appropriate Limits" icon="gauge">
+    Use reasonable `limit` values to avoid timeouts on large datasets.
+  </Card>
+</CardGroup>

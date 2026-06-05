@@ -1,0 +1,172 @@
+---
+title: 'Request Full Snapshot'
+description: 'Initiate an asynchronous full inventory snapshot for large datasets'
+api: 'POST /snapshot_request'
+---
+
+Initiate an asynchronous full inventory snapshot job for large datasets. This is ideal for initial synchronization, bulk operations, or historical point-in-time inventory analysis.
+
+<Note>
+Full snapshots are processed asynchronously. The system will send a **SnapshotReady** callback when the snapshot is complete with download links.
+</Note>
+
+## Request Body
+
+<ParamField body="snapshot_type" type="string" required>
+  Type of snapshot to generate. Currently only `"full"` is supported.
+</ParamField>
+
+<ParamField body="snapshot_as_of_date" type="string">
+  Point-in-time for the snapshot in RFC3339 format. If omitted, the current time is used.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/snapshot_request" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "snapshot_type": "full",
+    "snapshot_as_of_date": "2019-08-05T08:15:30-07:00"
+  }'
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/snapshot_request"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = {
+    "snapshot_type": "full",
+    "snapshot_as_of_date": "2019-08-05T08:15:30-07:00"
+}
+
+response = requests.post(url, headers=headers, json=data)
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/snapshot_request', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    snapshot_type: "full",
+    snapshot_as_of_date: "2019-08-05T08:15:30-07:00"
+  })
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Accepted
+{
+  "snapshot_request_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "processing",
+  "estimated_completion": "2019-08-05T08:20:30-07:00"
+}
+```
+
+```json 400 Bad Request
+{
+  "error": {
+    "code": "INVALID_SNAPSHOT_TYPE",
+    "message": "Snapshot type must be 'full'"
+  }
+}
+```
+
+```json 400 Invalid Date
+{
+  "error": {
+    "code": "INVALID_DATE_FORMAT",
+    "message": "snapshot_as_of_date must be in RFC3339 format"
+  }
+}
+```
+</ResponseExample>
+
+## Asynchronous Processing
+
+<Steps>
+  <Step title="Submit Request">
+    Send POST request to initiate the snapshot job
+  </Step>
+  <Step title="Receive Confirmation">
+    API returns `snapshot_request_id` and estimated completion time
+  </Step>
+  <Step title="Process Snapshot">
+    MasonHub processes the snapshot asynchronously in the background
+  </Step>
+  <Step title="Receive Callback">
+    **SnapshotReady** callback is sent when the snapshot is complete
+  </Step>
+  <Step title="Download Data">
+    Use the download URL from the callback to retrieve the snapshot data
+  </Step>
+</Steps>
+
+## SnapshotReady Callback
+
+When the snapshot is ready, you'll receive a callback:
+
+```json
+{
+  "callback_url": "https://client.com/api/snapshot_ready",
+  "message_type": "SnapshotReady",
+  "message_id": "f68870ed-d5dc-48g0-c81b-489b0c96bfbf",
+  "data": {
+    "snapshot_request_id": "550e8400-e29b-41d4-a716-446655440000",
+    "snapshot_type": "full",
+    "snapshot_as_of_date": "2019-08-05T08:15:30-07:00",
+    "status": "complete",
+    "download_url": "https://storage.masonhub.co/snapshots/550e8400.json",
+    "download_url_expires_at": "2019-08-06T08:15:30-07:00",
+    "record_count": 15420,
+    "file_size_bytes": 2548000
+  }
+}
+```
+
+<Warning>
+Download URLs are temporary and will expire. Download the snapshot data promptly after receiving the callback.
+</Warning>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Initial Sync" icon="sync">
+    Use full snapshots when first integrating with MasonHub to get complete inventory state.
+  </Card>
+  <Card title="Bulk Reconciliation" icon="scale-balanced">
+    Periodically reconcile your inventory records with a full snapshot.
+  </Card>
+  <Card title="Historical Analysis" icon="clock-rotate-left">
+    Request point-in-time snapshots for historical inventory analysis using `snapshot_as_of_date`.
+  </Card>
+  <Card title="Disaster Recovery" icon="shield">
+    Use snapshots as part of your backup and recovery strategy.
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Accordion title="Snapshot Frequency">
+  Full snapshots should be used sparingly—typically for initial sync or periodic reconciliation. For real-time updates, use the inventory change callbacks instead.
+</Accordion>
+
+<Accordion title="Point-in-Time Snapshots">
+  When requesting historical snapshots, ensure the `snapshot_as_of_date` is within the retention period for your account. Very old dates may not have complete data.
+</Accordion>
+
+<Accordion title="Callback Setup">
+  Ensure your callback endpoint is properly configured to receive **SnapshotReady** callbacks before requesting snapshots. See the [Callbacks documentation](/api-reference/callbacks) for setup details.
+</Accordion>

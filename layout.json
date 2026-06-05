@@ -28,69 +28,13 @@
   },
   "api": {
     "baseUrl": "https://app.masonhub.co/{account}/api/v1",
-    "playground": {
-      "display": "interactive"
-    }
+    "hidePlayground": false
   },
   "topbarCtaButton": {
     "name": "Contact Support",
     "url": "mailto:integration-support@masonhub.co"
   },
   "navigation": [
-    {
-      "group": "Introduction",
-      "pages": [
-        "index",
-        "overview"
-      ]
-    },
-    {
-      "group": "Getting Started",
-      "pages": [
-        "getting-started/request-access",
-        "getting-started/review-documentation"
-      ]
-    },
-    {
-      "group": "Integration",
-      "pages": [
-        "integration/architecture-flows"
-      ]
-    },
-    {
-      "group": "Testing & Validation",
-      "pages": [
-        "testing/sandbox-testing",
-        "testing/test-plan"
-      ]
-    },
-    {
-      "group": "Ship Method Configuration",
-      "pages": [
-        "ship-method-mappings/configuration"
-      ]
-    },
-
-    {
-      "group": "Getting data back into the ERP / Source System",
-      "pages": [
-        "data-sync/polling-get-calls",
-        "data-sync/callback-events"
-      ]
-    },
-    {
-      "group": "International Shipping",
-      "pages": [
-        "international/commercial-invoice-requirements"
-      ]
-    },
-    {
-      "group": "Production",
-      "pages": [
-        "production/readiness-checklist",
-        "production/go-live"
-      ]
-    },
     {
       "group": "API Reference",
       "pages": [
@@ -104,13 +48,6 @@
         "api-reference/shipments",
         "api-reference/callbacks",
         "api-reference/datafactory"
-      ]
-    },
-    {
-      "group": "Support",
-      "pages": [
-        "support/contact-information",
-        "support/troubleshooting"
       ]
     }
   ],

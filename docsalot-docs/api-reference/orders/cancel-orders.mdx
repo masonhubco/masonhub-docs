@@ -1,0 +1,361 @@
+---
+title: 'Cancel Orders'
+description: 'Submit asynchronous order cancellation requests'
+api: 'POST /order_cancel_requests'
+---
+
+Cancel orders asynchronously by submitting cancellation requests. The system processes cancellations in the background and provides status updates through polling or webhooks.
+
+<Warning>
+**Important**: Use this dedicated endpoint for cancellations. Do NOT use the `/order_update_requests` endpoint to cancel orders - that endpoint is exclusively for editing orders.
+</Warning>
+
+## Request Body
+
+The request body accepts an array of cancellation request objects:
+
+### Required Fields
+
+<ParamField body="customer_identifier" type="string" required>
+  Your unique order identifier for the order to cancel.
+</ParamField>
+
+<ParamField body="reason" type="string" required>
+  Cancellation reason. Common values:
+  - `customer_request` - Customer initiated cancellation
+  - `inventory_unavailable` - Out of stock
+  - `payment_failed` - Payment processing issue
+  - `duplicate_order` - Accidental duplicate
+  - `fraud_suspected` - Security concern
+  - `other` - Other reason (provide details in notes)
+</ParamField>
+
+<ParamField body="notes" type="string">
+  Additional context or details about the cancellation.
+</ParamField>
+
+<ParamField body="requested_by" type="string">
+  Email or identifier of the person requesting cancellation.
+</ParamField>
+
+<ParamField body="priority" type="integer">
+  Cancellation priority (1-999). Higher values processed first.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/order_cancel_requests" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "129374",
+      "reason": "customer_request",
+      "notes": "Customer changed their mind before shipment",
+      "requested_by": "customer.service@example.com"
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/order_cancel_requests"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    {
+        "customer_identifier": "129374",
+        "reason": "customer_request",
+        "notes": "Customer changed their mind before shipment",
+        "requested_by": "customer.service@example.com"
+    }
+]
+
+response = requests.post(url, headers=headers, json=data)
+result = response.json()
+print(f"Cancellation request ID: {result['results'][0]['system_id']}")
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/order_cancel_requests', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      customer_identifier: "129374",
+      reason: "customer_request",
+      notes: "Customer changed their mind before shipment",
+      requested_by: "customer.service@example.com"
+    }
+  ])
+});
+
+const data = await response.json();
+console.log(`Cancellation request ID: ${data.results[0].system_id}`);
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 1,
+  "records_processed": 1,
+  "records_failed": 0,
+  "records_succeeded": 1,
+  "results": [
+    {
+      "system_id": "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
+      "customer_identifier": "129374",
+      "status": "pending",
+      "submitted_at": "2024-01-17T10:30:00Z"
+    }
+  ]
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "ORDER_NOT_FOUND",
+    "message": "Order with specified identifier not found",
+    "details": {
+      "customer_identifier": "nonexistent-order"
+    }
+  }
+}
+```
+
+```json 409 Conflict
+{
+  "error": {
+    "code": "CANCELLATION_NOT_ALLOWED",
+    "message": "Order cannot be canceled in current status",
+    "details": {
+      "customer_identifier": "129374",
+      "order_status": "fulfilled",
+      "reason": "Order has already been shipped"
+    }
+  }
+}
+```
+
+```json 400 Bad Request
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Missing required field",
+    "details": {
+      "field": "reason",
+      "message": "Cancellation reason is required"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Cancellation Process Flow
+
+<Steps>
+  <Step title="Submit Request">
+    Send cancellation request to this endpoint with order identifier and reason
+  </Step>
+  <Step title="Receive Confirmation">
+    API returns immediately with a `system_id` for tracking the request
+  </Step>
+  <Step title="Asynchronous Processing">
+    MasonHub processes the cancellation in the background:
+    - Verifies order exists and can be canceled
+    - Stops fulfillment processes if in progress
+    - Releases allocated inventory
+    - Updates order status
+  </Step>
+  <Step title="Monitor Status">
+    Check cancellation status via polling or webhook callbacks
+  </Step>
+  <Step title="Final Resolution">
+    Receive final status: `success`, `failed`, or `partial`
+  </Step>
+</Steps>
+
+## Monitoring Cancellation Status
+
+Track your cancellation request status using these methods:
+
+<Tabs>
+  <Tab title="Polling">
+    Query the [Get Order Cancels](/api-reference/orders/get-order-cancels) endpoint:
+
+    ```bash
+    GET /order_cancel_requests?id=7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    ```
+
+    Poll every 30-60 seconds until status changes from `pending` to final state.
+  </Tab>
+
+  <Tab title="Webhooks (Recommended)">
+    Configure `orderCancelResolution` callbacks for automatic notifications:
+
+    ```json
+    {
+      "callback_url": "https://client.com/api/orderCancelResolution",
+      "message_type": "orderCancelResolution",
+      "data": [
+        {
+          "cancel_request_id": "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
+          "customer_identifier": "129374",
+          "status": "success",
+          "canceled_at": "2024-01-17T10:31:45Z",
+          "details": {
+            "items_canceled": 2,
+            "inventory_released": true
+          }
+        }
+      ]
+    }
+    ```
+
+    See [Order Cancel Resolutions](/api-reference/callback-events/order-cancel-resolutions) for webhook setup.
+  </Tab>
+</Tabs>
+
+## Cancellation Eligibility
+
+Orders can be canceled based on their current status:
+
+<AccordionGroup>
+  <Accordion title="✅ Can Cancel" defaultOpen>
+    Orders in these statuses can be canceled:
+    - `pending` - Not yet started processing
+    - `on_hold` - Temporarily paused
+    - `processing` - Being picked (may incur fees if picking started)
+  </Accordion>
+
+  <Accordion title="⚠️ Partial Cancel Possible">
+    Orders may be partially canceled if:
+    - Multi-shipment order with some shipments already sent
+    - Some items picked, others not started
+    - Split orders across multiple warehouses
+  </Accordion>
+
+  <Accordion title="❌ Cannot Cancel">
+    Orders cannot be canceled once:
+    - `fulfilled` - Already shipped
+    - `delivered` - Delivered to customer
+    - `returned` - Return process initiated
+  </Accordion>
+</AccordionGroup>
+
+## Cancellation Reasons
+
+Standard cancellation reasons and their typical use cases:
+
+<CardGroup cols={2}>
+  <Card title="customer_request" icon="user-xmark">
+    Customer initiated the cancellation through your platform
+  </Card>
+  <Card title="inventory_unavailable" icon="box-open">
+    Stock depleted or inventory discrepancy discovered
+  </Card>
+  <Card title="payment_failed" icon="credit-card">
+    Payment authorization failed or was declined
+  </Card>
+  <Card title="duplicate_order" icon="copy">
+    Accidental duplicate order submission
+  </Card>
+  <Card title="fraud_suspected" icon="shield-halved">
+    Security concerns or suspicious activity detected
+  </Card>
+  <Card title="address_undeliverable" icon="location-crosshairs">
+    Shipping address invalid or unserviceable
+  </Card>
+  <Card title="product_discontinued" icon="ban">
+    Product no longer available for sale
+  </Card>
+  <Card title="other" icon="ellipsis">
+    Other reason - provide details in notes field
+  </Card>
+</CardGroup>
+
+## Handling Partial Cancellations
+
+When only part of an order can be canceled:
+
+```json
+{
+  "cancel_request_id": "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
+  "customer_identifier": "129374",
+  "status": "partial",
+  "details": {
+    "requested_items": 5,
+    "canceled_items": 3,
+    "shipped_items": 2,
+    "reason": "2 items already shipped in shipment SHIP-001"
+  }
+}
+```
+
+<Warning>
+Partial cancellations occur when some items have already been shipped. You'll need to handle returns for shipped items separately.
+</Warning>
+
+## Fees and Charges
+
+<Note>
+Cancellation fees may apply depending on fulfillment stage:
+- **No fee**: Orders canceled before picking starts
+- **Picking fee**: Orders canceled after picking begins
+- **Full charge**: Orders canceled after packing complete
+
+Contact your MasonHub representative for your specific fee structure.
+</Note>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Cancel Quickly" icon="bolt">
+    Submit cancellations immediately to maximize success probability
+  </Card>
+  <Card title="Provide Context" icon="comment">
+    Include detailed notes to help warehouse staff and for audit trails
+  </Card>
+  <Card title="Use Webhooks" icon="webhook">
+    Configure callbacks for real-time updates instead of polling
+  </Card>
+  <Card title="Handle Failures" icon="rotate-left">
+    Implement retry logic for failed cancellations with corrected data
+  </Card>
+</CardGroup>
+
+## Error Handling
+
+Common error scenarios and recommended actions:
+
+| Error Code | Scenario | Recommended Action |
+|------------|----------|-------------------|
+| ORDER_NOT_FOUND | Order doesn't exist | Verify customer_identifier |
+| CANCELLATION_NOT_ALLOWED | Order already shipped | Initiate return process |
+| DUPLICATE_REQUEST | Cancellation already submitted | Check existing request status |
+| INVALID_REASON | Unknown reason code | Use valid reason from list |
+
+<Tip>
+Store the returned `system_id` for each cancellation request. You'll need it to track the cancellation status and handle any follow-up actions.
+</Tip>
+
+## Related Endpoints
+
+- [Get Order Cancels](/api-reference/orders/get-order-cancels) - Check cancellation request status
+- [Create Returns](/api-reference/returns/create-returns) - For orders already shipped
+- [Order Cancel Resolutions](/api-reference/callback-events/order-cancel-resolutions) - Webhook configuration
+
+## Sources
+
+- [Create, Edit & Cancel Orders | MasonHub API – MasonHub](https://support.masonhub.co/hc/en-us/articles/360052470011-Create-Edit-Cancel-Orders-MasonHub-API)
+- [Order Updates :: MasonHub Documentation](https://docs.masonhub.co/releases/order_updates/)

@@ -1,0 +1,109 @@
+---
+title: 'Trigger Inbound Shipment Event'
+description: 'Simulate inbound shipment receiving events (Sandbox only)'
+api: 'POST /data_factory/inboundShipmentEvent'
+---
+
+Simulate inbound shipment receiving events to test receiving workflows and inventory updates.
+
+<Warning>
+DataFactory is only available in the sandbox environment.
+</Warning>
+
+## Request Body
+
+<ParamField body="customer_identifier" type="string" required>
+  Shipment customer identifier.
+</ParamField>
+
+<ParamField body="event" type="string" required>
+  Event type. Options: `onDock`, `receivingStarted`, `receivingCompleted`.
+</ParamField>
+
+<ParamField body="randomize_receipt_qty" type="boolean" default="false">
+  Randomize received quantities for over/under receipt testing.
+</ParamField>
+
+<ParamField body="randomize_inventory_statuses" type="boolean" default="false">
+  Randomize inventory statuses (available, damaged, quality-control, etc.).
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/data_factory/inboundShipmentEvent" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[{
+    "customer_identifier": "shipment32432",
+    "event": "receivingCompleted",
+    "randomize_receipt_qty": true,
+    "randomize_inventory_statuses": true
+  }]'
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/data_factory/inboundShipmentEvent"
+response = requests.post(url,
+    headers={"Authorization": "Bearer your_jwt_token"},
+    json=[{
+        "customer_identifier": "shipment32432",
+        "event": "receivingCompleted",
+        "randomize_receipt_qty": True,
+        "randomize_inventory_statuses": True
+    }])
+```
+
+```javascript JavaScript
+await fetch('https://app.masonhub.co/{account}/api/v1/data_factory/inboundShipmentEvent', {
+  method: 'POST',
+  headers: {'Authorization': 'Bearer your_jwt_token', 'Content-Type': 'application/json'},
+  body: JSON.stringify([{
+    customer_identifier: "shipment32432",
+    event: "receivingCompleted",
+    randomize_receipt_qty: true,
+    randomize_inventory_statuses: true
+  }])
+});
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "success": true,
+  "data": [{
+    "customer_identifier": "shipment32432",
+    "event": "receivingCompleted",
+    "status": "received"
+  }]
+}
+```
+</ResponseExample>
+
+## Available Events
+
+<Steps>
+  <Step title="On Dock">Shipment arrived at facility</Step>
+  <Step title="Receiving Started">Receiving process has begun</Step>
+  <Step title="Receiving Completed">All items received and processed</Step>
+</Steps>
+
+## Randomization Options
+
+When enabled, randomization helps test variance scenarios:
+
+- **randomize_receipt_qty**: Simulates over/under receipts
+- **randomize_inventory_statuses**: Items received into mixed statuses (available, damaged, quality-control, refurbishing, under-investigation)
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Receiving Tests" icon="box-open">
+    Test complete receiving workflows from arrival to completion
+  </Card>
+  <Card title="Variance Testing" icon="shuffle">
+    Test handling of receiving discrepancies and quality issues
+  </Card>
+</CardGroup>

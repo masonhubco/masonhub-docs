@@ -1,0 +1,491 @@
+---
+title: 'Create Orders'
+description: 'Create one or more orders with comprehensive configuration options'
+api: 'POST /orders'
+---
+
+Create new orders in the MasonHub fulfillment system. Orders can be submitted individually or in batches, with support for complex routing policies, inventory allocation constraints, and custom shipping requirements.
+
+<Note>
+Orders are processed synchronously. The API returns immediately with creation status and assigned order IDs.
+</Note>
+
+## Request Body
+
+The request body accepts an array of order objects. Each order supports the following fields:
+
+### Required Fields
+
+<ParamField body="customer_identifier" type="string" required>
+  Unique order identifier from your system. This is your primary reference for tracking the order.
+</ParamField>
+
+<ParamField body="order_type" type="string" required>
+  Order type classification (e.g., "customer", "replacement", "sample").
+</ParamField>
+
+<ParamField body="shipping_provider" type="string" required>
+  Shipping carrier name (e.g., "masonhub", "UPS", "FedEx", "USPS").
+</ParamField>
+
+<ParamField body="shipper_service_level" type="string" required>
+  Carrier service level. Options: `ground`, `express`, `overnight`, `two_day`.
+</ParamField>
+
+<ParamField body="submitted_at" type="string" required>
+  Order submission timestamp in RFC3339 format (e.g., "2018-08-01T00:00:00Z").
+</ParamField>
+
+<ParamField body="line_items" type="array" required>
+  Array of line item objects. Each item requires `sku_customer_id` and `quantity`.
+</ParamField>
+
+### Shipping Address (Required)
+
+<ParamField body="shipping_address_name" type="string" required>
+  Recipient full name.
+</ParamField>
+
+<ParamField body="shipping_address_street_line_one" type="string" required>
+  Street address line 1.
+</ParamField>
+
+<ParamField body="shipping_address_street_line_two" type="string">
+  Street address line 2 (apartment, suite, etc.).
+</ParamField>
+
+<ParamField body="shipping_address_city" type="string" required>
+  City name.
+</ParamField>
+
+<ParamField body="shipping_address_locale" type="string" required>
+  State/province code (e.g., "NJ", "CA").
+</ParamField>
+
+<ParamField body="shipping_address_postal_code" type="string" required>
+  Postal/ZIP code.
+</ParamField>
+
+<ParamField body="shipping_address_country_code" type="string" required>
+  Two-letter ISO country code (e.g., "US", "CA").
+</ParamField>
+
+<ParamField body="shipping_address_phone_number" type="string" required>
+  Contact phone number.
+</ParamField>
+
+<ParamField body="shipping_address_type" type="string" required>
+  Address type. Options: `residential` or `commercial`.
+</ParamField>
+
+### Billing Address (Required)
+
+<ParamField body="billing_address_name" type="string" required>
+  Billing contact name.
+</ParamField>
+
+<ParamField body="billing_address_street_line_one" type="string" required>
+  Billing street address line 1.
+</ParamField>
+
+<ParamField body="billing_address_street_line_two" type="string">
+  Billing street address line 2.
+</ParamField>
+
+<ParamField body="billing_address_city" type="string" required>
+  Billing city.
+</ParamField>
+
+<ParamField body="billing_address_locale" type="string" required>
+  Billing state/province code.
+</ParamField>
+
+<ParamField body="billing_address_postal_code" type="string" required>
+  Billing postal/ZIP code.
+</ParamField>
+
+<ParamField body="billing_address_country_code" type="string" required>
+  Billing country code.
+</ParamField>
+
+<ParamField body="billing_address_phone_number" type="string" required>
+  Billing phone number.
+</ParamField>
+
+<ParamField body="billing_address_type" type="string" required>
+  Billing address type: `residential` or `commercial`.
+</ParamField>
+
+### Optional Fields
+
+<ParamField body="priority" type="integer">
+  Order priority (higher values = more urgent). Range: 1-999.
+</ParamField>
+
+<ParamField body="value_added_services" type="array">
+  Array of additional service strings to be performed (e.g., gift wrapping, custom packaging).
+</ParamField>
+
+<ParamField body="special_instructions" type="string">
+  Special handling instructions for warehouse staff.
+</ParamField>
+
+<ParamField body="gift_message" type="string">
+  Gift message to include with the order.
+</ParamField>
+
+<ParamField body="backorder_policy" type="string">
+  How to handle out-of-stock items. Options:
+  - `cancel_shorts` - Cancel unavailable items
+  - `backorder` - Hold order until inventory available
+  - `partial_ship` - Ship available items immediately
+</ParamField>
+
+<ParamField body="routing_policy" type="string">
+  Fulfillment routing strategy for multi-warehouse scenarios.
+</ParamField>
+
+<ParamField body="split_policy" type="string">
+  Order splitting rules. Options:
+  - `single_shipment` - Never split orders
+  - `allow_splits` - Allow splits for efficiency
+  - `minimize_splits` - Prefer single shipments but allow splits
+</ParamField>
+
+<ParamField body="order_localization" type="object">
+  Localization settings for international orders.
+</ParamField>
+
+### Line Items
+
+Each line item in the `line_items` array supports:
+
+<ParamField body="sku_customer_id" type="string" required>
+  Your SKU identifier (must exist in catalog).
+</ParamField>
+
+<ParamField body="quantity" type="integer" required>
+  Quantity to ship.
+</ParamField>
+
+<ParamField body="promised_delivery_date" type="string">
+  Promised delivery date in RFC3339 format.
+</ParamField>
+
+<ParamField body="estimated_delivery_date" type="string">
+  Estimated delivery date in RFC3339 format.
+</ParamField>
+
+<ParamField body="pick_from" type="array">
+  Inventory allocation constraints. Each rule specifies `match_type`, `match_value`, and `match_style`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/orders" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "129374",
+      "order_type": "customer",
+      "priority": 100,
+      "shipping_provider": "masonhub",
+      "shipper_service_level": "ground",
+      "value_added_services": ["Complimentary Handkerchief"],
+      "special_instructions": "Triple Fold the Sleeves and wrap in Tissue Paper.",
+      "gift_message": "Happy Birthday Freddie!",
+      "shipping_address_name": "John Jacob JingleHeimer-Schmidt III",
+      "shipping_address_street_line_one": "234 House Lane",
+      "shipping_address_city": "Little Falls",
+      "shipping_address_locale": "NJ",
+      "shipping_address_postal_code": "07972",
+      "shipping_address_country_code": "US",
+      "shipping_address_phone_number": "973-999-3333",
+      "shipping_address_type": "residential",
+      "billing_address_name": "John Jacob JingleHeimer-Schmidt III",
+      "billing_address_street_line_one": "234 House Lane",
+      "billing_address_city": "Little Falls",
+      "billing_address_locale": "NJ",
+      "billing_address_postal_code": "07972",
+      "billing_address_country_code": "US",
+      "billing_address_phone_number": "973-999-3333",
+      "billing_address_type": "residential",
+      "submitted_at": "2018-08-01T00:00:00Z",
+      "line_items": [
+        {
+          "sku_customer_id": "shirts872340",
+          "quantity": 2,
+          "promised_delivery_date": "2018-08-15T17:32:28Z",
+          "estimated_delivery_date": "2018-08-15T17:32:28Z"
+        }
+      ]
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/orders"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    {
+        "customer_identifier": "129374",
+        "order_type": "customer",
+        "priority": 100,
+        "shipping_provider": "masonhub",
+        "shipper_service_level": "ground",
+        "shipping_address_name": "John Jacob JingleHeimer-Schmidt III",
+        "shipping_address_street_line_one": "234 House Lane",
+        "shipping_address_city": "Little Falls",
+        "shipping_address_locale": "NJ",
+        "shipping_address_postal_code": "07972",
+        "shipping_address_country_code": "US",
+        "shipping_address_phone_number": "973-999-3333",
+        "shipping_address_type": "residential",
+        "billing_address_name": "John Jacob JingleHeimer-Schmidt III",
+        "billing_address_street_line_one": "234 House Lane",
+        "billing_address_city": "Little Falls",
+        "billing_address_locale": "NJ",
+        "billing_address_postal_code": "07972",
+        "billing_address_country_code": "US",
+        "billing_address_phone_number": "973-999-3333",
+        "billing_address_type": "residential",
+        "submitted_at": "2018-08-01T00:00:00Z",
+        "line_items": [
+            {
+                "sku_customer_id": "shirts872340",
+                "quantity": 2
+            }
+        ]
+    }
+]
+
+response = requests.post(url, headers=headers, json=data)
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/orders', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      customer_identifier: "129374",
+      order_type: "customer",
+      priority: 100,
+      shipping_provider: "masonhub",
+      shipper_service_level: "ground",
+      shipping_address_name: "John Jacob JingleHeimer-Schmidt III",
+      shipping_address_street_line_one: "234 House Lane",
+      shipping_address_city: "Little Falls",
+      shipping_address_locale: "NJ",
+      shipping_address_postal_code: "07972",
+      shipping_address_country_code: "US",
+      shipping_address_phone_number: "973-999-3333",
+      shipping_address_type: "residential",
+      billing_address_name: "John Jacob JingleHeimer-Schmidt III",
+      billing_address_street_line_one: "234 House Lane",
+      billing_address_city: "Little Falls",
+      billing_address_locale: "NJ",
+      billing_address_postal_code: "07972",
+      billing_address_country_code: "US",
+      billing_address_phone_number: "973-999-3333",
+      billing_address_type: "residential",
+      submitted_at: "2018-08-01T00:00:00Z",
+      line_items: [
+        {
+          sku_customer_id: "shirts872340",
+          quantity: 2
+        }
+      ]
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 1,
+  "records_processed": 1,
+  "records_failed": 0,
+  "records_succeeded": 1,
+  "results": [
+    {
+      "system_id": "550e8400-e29b-41d4-a716-446655440000",
+      "customer_identifier": "129374",
+      "status": "success"
+    }
+  ]
+}
+```
+
+```json 400 Validation Error
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Required field missing",
+    "details": {
+      "field": "shipping_address_country_code",
+      "value": null
+    }
+  }
+}
+```
+
+```json 404 SKU Not Found
+{
+  "error": {
+    "code": "SKU_NOT_FOUND",
+    "message": "One or more SKUs not found in catalog",
+    "details": {
+      "missing_skus": ["shirts872340"]
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Advanced Features
+
+### Pick From Constraints
+
+Control exactly which inventory is allocated to orders using `pick_from` rules:
+
+<Tabs>
+  <Tab title="Hard Match">
+    **Required Constraint**: Order will fail if inventory doesn't match criteria.
+
+    ```json
+    {
+      "pick_from": [
+        {
+          "match_type": "purchase_order",
+          "match_value": ["PO23423", "PO42322"],
+          "match_style": "hard"
+        }
+      ]
+    }
+    ```
+
+    Use for: Specific lot requirements, quality control, customer-specific inventory.
+  </Tab>
+
+  <Tab title="Soft Match">
+    **Preferred Constraint**: System tries to match but will use other inventory if unavailable.
+
+    ```json
+    {
+      "pick_from": [
+        {
+          "match_type": "lot_number",
+          "match_value": ["LOT001"],
+          "match_style": "soft"
+        }
+      ]
+    }
+    ```
+
+    Use for: FEFO optimization, preferred locations, non-critical preferences.
+  </Tab>
+</Tabs>
+
+### Order Splitting Policies
+
+Configure how orders can be split across multiple shipments:
+
+<CardGroup cols={3}>
+  <Card title="Single Shipment" icon="box">
+    Never split orders. Wait until all items are available to ship together.
+  </Card>
+  <Card title="Allow Splits" icon="boxes-stacked">
+    Allow orders to split freely for maximum efficiency and speed.
+  </Card>
+  <Card title="Minimize Splits" icon="layer-group">
+    Prefer single shipments but allow splits if necessary to avoid delays.
+  </Card>
+</CardGroup>
+
+### Backorder Policies
+
+Handle out-of-stock scenarios:
+
+<Steps>
+  <Step title="Cancel Shorts">
+    Cancel unavailable items immediately. Customer receives partial order.
+  </Step>
+  <Step title="Backorder">
+    Hold entire order until all items are available. Guarantees complete order.
+  </Step>
+  <Step title="Partial Ship">
+    Ship available items immediately, backorder the rest. Balance of speed and completeness.
+  </Step>
+</Steps>
+
+## Order Events and Callbacks
+
+Configure webhooks to receive real-time order status updates:
+
+<Accordion title="orderEvent Callback">
+  Triggered when order status changes (packed, fulfilled, delivered, etc.).
+
+  ```json
+  {
+    "callback_url": "https://client.com/api/orderEvent",
+    "message_type": "orderEvent",
+    "message_id": "uuid-here",
+    "data": [
+      {
+        "order_id": "8f1316d5-859f-4802-98b0-63d03a9517ac",
+        "customer_identifier": "129374",
+        "status": "fulfilled",
+        "shipments": [
+          {
+            "tracking_number": "1z324897234nferg45",
+            "tracking_url": "http://ups.com/tracking/...",
+            "shipment_date_time": "2018-08-06T15:11:19Z"
+          }
+        ]
+      }
+    ]
+  }
+  ```
+</Accordion>
+
+## Best Practices
+
+<Warning>
+Always provide complete shipping and billing addresses with country codes. Missing address fields will cause validation errors.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Validate SKUs First" icon="check">
+    Ensure all line item SKUs exist in your catalog before creating orders.
+  </Card>
+  <Card title="Set Realistic Priorities" icon="ranking-star">
+    Use priority judiciously. Too many high-priority orders reduce effectiveness.
+  </Card>
+  <Card title="Use Callbacks" icon="bell">
+    Configure orderEvent webhooks for real-time status updates instead of polling.
+  </Card>
+  <Card title="Batch Operations" icon="layer-group">
+    Submit multiple orders in single API calls for improved performance.
+  </Card>
+</CardGroup>
+
+<Tip>
+Store the `system_id` (MasonHub order UUID) returned in the response for future order queries and updates.
+</Tip>

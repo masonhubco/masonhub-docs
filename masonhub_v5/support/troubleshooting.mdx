@@ -1,0 +1,550 @@
+---
+title: 'Troubleshooting'
+description: 'Common issues and solutions for MasonHub integrations'
+---
+
+# Troubleshooting Guide
+
+This guide covers common issues encountered during MasonHub integration development and provides step-by-step solutions to resolve them quickly.
+
+## Authentication Issues
+
+### API Token Problems
+
+<Accordion title="Invalid or Expired Token">
+  **Symptoms:**
+  - HTTP 401 Unauthorized responses
+  - "Invalid token" error messages
+  - Authentication failures
+  
+  **Solutions:**
+  1. **Verify Token Format**
+     ```bash
+     # Correct format
+     Authorization: Bearer YOUR_API_TOKEN_HERE
+     ```
+  
+  2. **Check Token Expiration**
+     - Contact integration-support@masonhub.co for token renewal
+     - Verify you're using the latest token provided
+  
+  3. **Validate Token Storage**
+     - Ensure token is stored without extra characters
+     - Check for hidden characters or line breaks
+     - Verify environment variable configuration
+  
+  **Prevention:**
+  - Store tokens securely in environment variables
+  - Implement token refresh mechanisms
+  - Monitor for authentication errors
+</Accordion>
+
+<Accordion title="Missing Authorization Header">
+  **Symptoms:**
+  - HTTP 401 responses without specific error message
+  - "Authorization header missing" errors
+  
+  **Solution:**
+  ```bash
+  # Always include the Authorization header
+  curl -H "Authorization: Bearer YOUR_TOKEN" \
+       -H "Content-Type: application/json" \
+       https://api.masonhub.co/api/v1/orders
+  ```
+  
+  **Code Examples:**
+  ```python
+  # Python
+  headers = {
+      'Authorization': f'Bearer {api_token}',
+      'Content-Type': 'application/json'
+  }
+  ```
+  
+  ```javascript
+  // JavaScript
+  const headers = {
+      'Authorization': `Bearer ${apiToken}`,
+      'Content-Type': 'application/json'
+  };
+  ```
+</Accordion>
+
+## API Request Issues
+
+### Rate Limiting
+
+<Accordion title="Rate Limit Exceeded">
+  **Symptoms:**
+  - HTTP 429 Too Many Requests
+  - "Rate limit exceeded" error messages
+  - Temporary request failures
+  
+  **Immediate Solution:**
+  ```python
+  import time
+  import requests
+  
+  def api_request_with_retry(url, headers, data=None, max_retries=3):
+      for attempt in range(max_retries):
+          response = requests.post(url, headers=headers, json=data)
+          
+          if response.status_code == 429:
+              # Exponential backoff
+              wait_time = (2 ** attempt) * 60  # 1, 2, 4 minutes
+              print(f"Rate limited. Waiting {wait_time} seconds...")
+              time.sleep(wait_time)
+              continue
+              
+          return response
+      
+      raise Exception("Max retries exceeded")
+  ```
+  
+  **Long-term Solutions:**
+  - Implement exponential backoff retry logic
+  - Reduce request frequency
+  - Batch operations where possible
+  - Cache frequently accessed data
+  
+  **Rate Limit Guidelines:**
+  - Standard: 1000 requests per hour
+  - Bulk operations: Use pagination
+  - Spread requests evenly over time
+</Accordion>
+
+### Data Validation Errors
+
+<Accordion title="Required Field Missing">
+  **Symptoms:**
+  - HTTP 400 Bad Request
+  - "Required field missing" errors
+  - Field validation failures
+  
+  **Common Missing Fields:**
+  
+  **Orders:**
+  ```json
+  {
+    "error": {
+      "field": "shipping_service_provider",
+      "message": "Required field missing"
+    }
+  }
+  ```
+  
+  **Solution:**
+  ```json
+  {
+    "order": {
+      "external_id": "ORDER-123",
+      "shipping_service_provider": "masonhub",
+      "shipping_service_level": "ground",
+      "shipping_address": {
+        "name": "John Doe",
+        "street": "123 Main St",
+        "city": "Springfield",
+        "state": "IL",
+        "zip": "62701",
+        "country": "US"
+      },
+      "line_items": [
+        {
+          "sku": "PRODUCT-001",
+          "quantity": 1,
+          "price": 25.00
+        }
+      ]
+    }
+  }
+  ```
+  
+  **SKUs:**
+  ```json
+  {
+    "sku": {
+      "sku": "PRODUCT-001",
+      "name": "Product Name",
+      "description": "Product Description"
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Invalid Data Format">
+  **Symptoms:**
+  - HTTP 400 Bad Request
+  - "Invalid format" error messages
+  - Type validation errors
+  
+  **Common Format Issues:**
+  
+  **Numeric Fields:**
+  ```json
+  // Wrong - string instead of number
+  "price": "25.00"
+  
+  // Correct - numeric value
+  "price": 25.00
+  ```
+  
+  **Date Fields:**
+  ```json
+  // Wrong - invalid date format
+  "ship_date": "01/15/2024"
+  
+  // Correct - ISO 8601 format
+  "ship_date": "2024-01-15T10:30:00Z"
+  ```
+  
+  **Boolean Fields:**
+  ```json
+  // Wrong - string instead of boolean
+  "is_active": "true"
+  
+  // Correct - boolean value
+  "is_active": true
+  ```
+</Accordion>
+
+## Ship Method Configuration Issues
+
+### Invalid Ship Method Mapping
+
+<Accordion title="Ship Method Not Found">
+  **Symptoms:**
+  - HTTP 400 Bad Request
+  - "Invalid ship method" error messages
+  - Order creation failures
+  
+  **Error Example:**
+  ```json
+  {
+    "error": {
+      "code": "INVALID_SHIP_METHOD",
+      "message": "Ship method mapping not found",
+      "details": {
+        "shipping_service_provider": "fedex",
+        "shipping_service_level": "ground"
+      }
+    }
+  }
+  ```
+  
+  **Solution Steps:**
+  1. **Use Standard Mappings:**
+     ```json
+     {
+       "shipping_service_provider": "masonhub",
+       "shipping_service_level": "ground"
+     }
+     ```
+  
+  2. **Verify Available Mappings:**
+     - Contact your onboarding resource
+     - Review configured ship methods
+     - Test in sandbox environment
+  
+  3. **Common Valid Mappings:**
+     | Provider | Service Level |
+     |----------|---------------|
+     | masonhub | ground |
+     | masonhub | 2day |
+     | masonhub | standardOvernight |
+     | willCall | willCall |
+</Accordion>
+
+## Inventory & SKU Issues
+
+### SKU Not Found
+
+<Accordion title="SKU Does Not Exist">
+  **Symptoms:**
+  - Order creation failures
+  - "SKU not found" errors
+  - Inventory allocation failures
+  
+  **Troubleshooting Steps:**
+  1. **Verify SKU Exists:**
+     ```bash
+     curl -H "Authorization: Bearer YOUR_TOKEN" \
+          "https://api.masonhub.co/api/v1/skus/YOUR_SKU_ID"
+     ```
+  
+  2. **Check SKU Status:**
+     - Ensure SKU is active
+     - Verify SKU was created successfully
+     - Check for case sensitivity issues
+  
+  3. **Create Missing SKU:**
+     ```json
+     {
+       "sku": {
+         "sku": "PRODUCT-001",
+         "name": "Product Name",
+         "description": "Product Description",
+         "weight": 1.0,
+         "dimensions": {
+           "length": 10.0,
+           "width": 8.0,
+           "height": 6.0
+         }
+       }
+     }
+     ```
+</Accordion>
+
+### Insufficient Inventory
+
+<Accordion title="Not Enough Stock">
+  **Symptoms:**
+  - Order creation warnings
+  - Backorder notifications
+  - Allocation failures
+  
+  **Solutions:**
+  1. **Check Current Inventory:**
+     ```bash
+     curl -H "Authorization: Bearer YOUR_TOKEN" \
+          "https://api.masonhub.co/api/v1/inventory?sku=PRODUCT-001"
+     ```
+  
+  2. **Handle Low Stock:**
+     - Implement inventory checks before order creation
+     - Set up low stock alerts
+     - Configure backorder handling
+  
+  3. **Update Inventory:**
+     - Create inbound shipments for new stock
+     - Process inventory adjustments if needed
+     - Monitor inventory levels regularly
+</Accordion>
+
+## Webhook Issues
+
+### Webhooks Not Received
+
+<Accordion title="Missing Webhook Notifications">
+  **Symptoms:**
+  - Expected webhooks not arriving
+  - Missing order status updates
+  - Integration data out of sync
+  
+  **Troubleshooting Steps:**
+  1. **Verify Endpoint Accessibility:**
+     ```bash
+     # Test if your endpoint is reachable
+     curl -X POST https://your-domain.com/webhooks/masonhub \
+          -H "Content-Type: application/json" \
+          -d '{"test": "webhook"}'
+     ```
+  
+  2. **Check Webhook Configuration:**
+     - Verify webhook URLs are correct
+     - Ensure endpoints are publicly accessible
+     - Check firewall and security settings
+  
+  3. **Validate SSL Configuration:**
+     - Use valid SSL certificates
+     - Ensure HTTPS is properly configured
+     - Test SSL certificate validity
+  
+  4. **Review Response Codes:**
+     - Return HTTP 200 for successful processing
+     - Return HTTP 4xx for permanent failures
+     - Return HTTP 5xx for temporary failures
+</Accordion>
+
+<Accordion title="Webhook Authentication Failures">
+  **Symptoms:**
+  - Webhook signature validation failures
+  - Authentication errors in webhook processing
+  - Rejected webhook requests
+  
+  **Solution:**
+  ```python
+  import hmac
+  import hashlib
+  
+  def verify_webhook_signature(payload, signature, secret):
+      expected_signature = hmac.new(
+          secret.encode('utf-8'),
+          payload,
+          hashlib.sha256
+      ).hexdigest()
+      
+      return hmac.compare_digest(
+          f"sha256={expected_signature}",
+          signature
+      )
+  
+  # Usage in webhook handler
+  def handle_webhook(request):
+      signature = request.headers.get('X-MasonHub-Signature')
+      payload = request.get_data()
+      
+      if not verify_webhook_signature(payload, signature, webhook_secret):
+          return "Invalid signature", 401
+      
+      # Process webhook...
+      return "OK", 200
+  ```
+</Accordion>
+
+## Performance Issues
+
+### Slow API Responses
+
+<Accordion title="High Response Times">
+  **Symptoms:**
+  - API calls taking longer than expected
+  - Timeout errors
+  - Poor user experience
+  
+  **Optimization Strategies:**
+  1. **Use Pagination:**
+     ```bash
+     # Instead of requesting all orders
+     curl "https://api.masonhub.co/api/v1/orders"
+     
+     # Request in smaller batches
+     curl "https://api.masonhub.co/api/v1/orders?limit=100&offset=0"
+     ```
+  
+  2. **Filter Requests:**
+     ```bash
+     # Filter by date range
+     curl "https://api.masonhub.co/api/v1/orders?updated_since=2024-01-01T00:00:00Z"
+     
+     # Filter by status
+     curl "https://api.masonhub.co/api/v1/orders?status=processing"
+     ```
+  
+  3. **Implement Caching:**
+     - Cache frequently accessed reference data
+     - Use appropriate cache expiration times
+     - Implement cache invalidation strategies
+  
+  4. **Monitor Performance:**
+     - Track API response times
+     - Set up alerting for slow responses
+     - Identify patterns in performance issues
+</Accordion>
+
+## Integration Testing Issues
+
+### Test Data Problems
+
+<Accordion title="Sandbox Data Issues">
+  **Symptoms:**
+  - Inconsistent test results
+  - Missing test data
+  - Sandbox environment issues
+  
+  **Solutions:**
+  1. **Use Data Factory:**
+     ```bash
+     # Generate test data using Data Factory
+     curl -X POST "https://sandbox-api.masonhub.co/api/v1/data-factory/orders" \
+          -H "Authorization: Bearer SANDBOX_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{"count": 10, "type": "standard_orders"}'
+     ```
+  
+  2. **Reset Test Environment:**
+     - Contact integration support for data cleanup
+     - Create fresh test datasets
+     - Establish consistent test procedures
+  
+  3. **Isolate Test Data:**
+     - Use unique identifiers for test data
+     - Implement test data cleanup procedures
+     - Separate test and production data clearly
+</Accordion>
+
+## Error Code Reference
+
+### Common HTTP Status Codes
+
+<CardGroup cols={2}>
+  <Card
+    title="400 Bad Request"
+    icon="exclamation-triangle"
+  >
+    **Causes:**
+    - Missing required fields
+    - Invalid data format
+    - Business rule violations
+    
+    **Action:**
+    - Review request payload
+    - Check field requirements
+    - Validate data types
+  </Card>
+  <Card
+    title="401 Unauthorized"
+    icon="lock"
+  >
+    **Causes:**
+    - Missing API token
+    - Invalid credentials
+    - Expired token
+    
+    **Action:**
+    - Verify authentication header
+    - Check token validity
+    - Request new token if needed
+  </Card>
+  <Card
+    title="404 Not Found"
+    icon="search"
+  >
+    **Causes:**
+    - Resource doesn't exist
+    - Incorrect endpoint URL
+    - Invalid resource ID
+    
+    **Action:**
+    - Verify resource exists
+    - Check URL spelling
+    - Confirm resource ID
+  </Card>
+  <Card
+    title="429 Too Many Requests"
+    icon="clock"
+  >
+    **Causes:**
+    - Rate limit exceeded
+    - Too many concurrent requests
+    
+    **Action:**
+    - Implement retry logic
+    - Reduce request frequency
+    - Use exponential backoff
+  </Card>
+</CardGroup>
+
+## Getting Additional Help
+
+### When to Contact Support
+
+Contact [integration-support@masonhub.co](mailto:integration-support@masonhub.co) when:
+
+- Issues persist after following troubleshooting steps
+- You encounter undocumented error messages
+- System behavior doesn't match documentation
+- You need assistance with complex integration scenarios
+
+### Information to Include
+
+When contacting support, include:
+
+- Detailed error messages
+- Request/response examples (sanitized)
+- Steps to reproduce the issue
+- Your account/company name
+- Timestamps when issues occurred
+
+## Next Steps
+
+If you haven't found a solution to your specific issue, please [contact our support team](/support/contact-information) for personalized assistance.

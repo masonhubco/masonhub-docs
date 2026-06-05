@@ -1,0 +1,159 @@
+---
+title: 'Get SKUs'
+description: 'Retrieve SKUs from the Item Master with flexible filtering and batch support'
+api: 'GET /skus'
+---
+
+The Catalog API manages SKUs (Stock Keeping Units), which are the primary catalog items in the MasonHub system. SKUs provide comprehensive product information and support complex scenarios like kits, multiple barcodes, and special handling requirements.
+
+
+<Note>
+SKUs are the primary catalog items in MasonHub. They are never fully removed from the system if inventory exists, ensuring data integrity and historical tracking.
+</Note>
+
+This endpoint allows you to query your catalog by MasonHub UUIDs, customer identifiers, or retrieve paginated lists of all SKUs.
+
+
+## Query Parameters
+
+<ParamField query="id" type="UUID[]">
+  MasonHub UUID strings. Supports batching 1-30 IDs per request.
+</ParamField>
+
+<ParamField query="cid" type="string[]">
+  Customer identifiers. Supports batching 1-30 identifiers per request.
+</ParamField>
+
+<ParamField query="list_type" type="string" default="detail">
+  Response detail level. Options:
+  - `detail` - Full SKU information including all fields
+  - `summary` - Condensed view with essential fields only
+</ParamField>
+
+<ParamField query="limit" type="integer" default="30">
+  Number of results to return. Range: 1-100.
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Pagination offset for retrieving subsequent pages of results.
+</ParamField>
+
+<ParamField query="include_counts" type="boolean" default="false">
+  Include inventory counts in the response. Only applies when `list_type=detail`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://app.masonhub.co/{account}/api/v1/skus?cid=pants4523&list_type=detail&include_counts=true" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/skus"
+headers = {
+    "Authorization": "Bearer your_jwt_token"
+}
+params = {
+    "cid": "pants4523",
+    "list_type": "detail",
+    "include_counts": True
+}
+
+response = requests.get(url, headers=headers, params=params)
+data = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/skus?cid=pants4523&list_type=detail&include_counts=true', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "include_counts": true,
+  "limit": 10,
+  "list_type": "detail", 
+  "offset": 0,
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "customer_identifier": "pants4523",
+      "customer_bar_code": "2345687902",
+      "vendor_bar_code": "39485627389",
+      "bar_codes": ["85962198623", "3459189485324"],
+      "vendor_style": "FP-pants",
+      "brand_name": "Freddie's Pants",
+      "product_name": "Fancy Pants",
+      "product_category": "Apparel",
+      "product_sub_category": "pants",
+      "product_description": "Very fancy pants with stripes",
+      "dim_weight": 0.75,
+      "dim_length": 4,
+      "dim_width": 2.2,
+      "dim_height": 0.5,
+      "unit_cost": 80,
+      "price": 160,
+      "available_quantity": 150,
+      "allocated_quantity": 25
+    }
+  ]
+}
+```
+
+```json 400 Bad Request
+{
+  "error": {
+    "code": "INVALID_PARAMETER",
+    "message": "Too many identifiers provided",
+    "details": {
+      "field": "cid",
+      "max_allowed": 30,
+      "provided": 45
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Batch Queries
+
+You can query multiple SKUs in a single request using arrays:
+
+```bash
+# Query by multiple customer identifiers
+GET /skus?cid=pants4523&cid=shirts450293&cid=hat001
+
+# Query by multiple MasonHub UUIDs
+GET /skus?id=550e8400-e29b-41d4-a716-446655440000&id=660f9500-f30c-52e5-b827-557766551111
+```
+
+<Warning>
+Maximum 30 identifiers per batch request. Exceeding this limit will result in a 400 error.
+</Warning>
+
+## Performance Tips
+
+<CardGroup cols={2}>
+  <Card title="Use Summary Lists" icon="list">
+    Start with `list_type=summary` when browsing or building selection UIs.
+  </Card>
+  <Card title="Filter Specifically" icon="filter">
+    Use `cid` or `id` arrays for targeted retrieval instead of paginating through all SKUs.
+  </Card>
+  <Card title="Appropriate Limits" icon="gauge">
+    Use reasonable `limit` values to avoid timeouts on large catalogs.
+  </Card>
+  <Card title="Include Counts Sparingly" icon="calculator">
+    Only use `include_counts=true` when inventory data is actually needed.
+  </Card>
+</CardGroup>

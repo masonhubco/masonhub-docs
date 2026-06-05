@@ -1,0 +1,266 @@
+---
+title: 'Get Order Shipments'
+description: 'Retrieve outbound shipment information for orders fulfilled from MasonHub distribution centers'
+api: 'GET /shipments'
+---
+
+The Shipments API provides access to outbound shipment information for orders that have been fulfilled and shipped from MasonHub distribution centers. This endpoint allows you to track shipments, retrieve tracking numbers, and monitor multi-shipment orders.
+
+<Note>
+Orders can ship in multiple packages when items are too large for a single package, ship from different locations, or when inventory availability requires splits.
+</Note>
+
+## Query Parameters
+
+<ParamField query="id" type="UUID[]">
+  MasonHub shipment UUIDs. Supports batching 1-30 IDs per request.
+</ParamField>
+
+<ParamField query="coid" type="string[]">
+  Customer order IDs. Filter shipments by customer order identifiers.
+</ParamField>
+
+<ParamField query="sdt" type="string">
+  Start date/time in RFC3339 format (e.g., `2018-08-01T00:00:00Z`). Filters shipments from this date onwards.
+</ParamField>
+
+<ParamField query="edt" type="string">
+  End date/time in RFC3339 format. Filters shipments up to this date.
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Pagination offset for retrieving subsequent pages of results.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="30">
+  Number of results to return. Range: 1-100.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://app.masonhub.co/{account}/api/v1/shipments?coid=12345,67890&sdt=2018-08-01T00:00:00Z" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/shipments"
+headers = {
+    "Authorization": "Bearer your_jwt_token"
+}
+params = {
+    "coid": "12345,67890",
+    "sdt": "2018-08-01T00:00:00Z"
+}
+
+response = requests.get(url, headers=headers, params=params)
+data = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/shipments?coid=12345,67890&sdt=2018-08-01T00:00:00Z', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "search_criteria": {
+    "sdt": "2018-08-01T00:00:00Z",
+    "edt": null
+  },
+  "limit": 30,
+  "offset": 0,
+  "list_type": "detail",
+  "include_counts": false,
+  "data": [
+    {
+      "id": "db79huy5-ec61-7892-ae7b-57a563b68133",
+      "shipment_id": "f0h7uuk",
+      "customer_order_id": "12345",
+      "shipping_provider": "UPS",
+      "shipper_service_level": "ground",
+      "tracking_number": "1z324897234nferg45",
+      "tracking_url": "http://ups.com/tracking/1z324897234nferg45",
+      "shipment_date_time": "2018-08-06T15:11:19Z",
+      "shipment_line_items": [
+        {
+          "sku_customer_id": "shirts872340",
+          "quantity": 2
+        },
+        {
+          "sku_customer_id": "pants3422",
+          "quantity": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json 400 Bad Request
+{
+  "error": {
+    "code": "INVALID_PARAMETER",
+    "message": "Invalid date format",
+    "details": {
+      "field": "sdt",
+      "expected_format": "RFC3339",
+      "provided": "2018-08-01"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Response Fields
+
+### Core Shipment Fields
+
+<ResponseField name="id" type="string">
+  MasonHub internal UUID for the shipment
+</ResponseField>
+
+<ResponseField name="shipment_id" type="string">
+  Human-readable shipment identifier
+</ResponseField>
+
+<ResponseField name="customer_order_id" type="string">
+  Customer's order identifier
+</ResponseField>
+
+<ResponseField name="shipping_provider" type="string">
+  Carrier name (UPS, USPS, FedEx, etc.)
+</ResponseField>
+
+<ResponseField name="shipper_service_level" type="string">
+  Service level (ground, priority, express)
+</ResponseField>
+
+<ResponseField name="tracking_number" type="string">
+  Carrier tracking number
+</ResponseField>
+
+<ResponseField name="tracking_url" type="string">
+  Direct tracking URL to carrier's tracking page
+</ResponseField>
+
+<ResponseField name="shipment_date_time" type="string">
+  Ship date and time in RFC3339 format
+</ResponseField>
+
+<ResponseField name="shipment_line_items" type="array">
+  Array of line items included in this shipment. Each item contains:
+  - `sku_customer_id` (string): Customer SKU identifier
+  - `quantity` (integer): Quantity of this SKU in the shipment
+</ResponseField>
+
+## Multi-Shipment Orders
+
+Orders can ship in multiple packages. When querying by `customer_order_id`, you may receive multiple shipments for the same order:
+
+```json
+{
+  "data": [
+    {
+      "shipment_id": "f0h7uuk",
+      "customer_order_id": "12345",
+      "shipping_provider": "UPS",
+      "tracking_number": "1z324897234nferg45",
+      "shipment_line_items": [
+        {
+          "sku_customer_id": "shirts872340",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "shipment_id": "u3d88z4",
+      "customer_order_id": "12345",
+      "shipping_provider": "UPS",
+      "tracking_number": "1z987654321abcdef",
+      "shipment_line_items": [
+        {
+          "sku_customer_id": "pants3422",
+          "quantity": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+<Warning>
+Always handle the possibility of multiple shipments per order in your integration code.
+</Warning>
+
+## Integration with Orders API
+
+Shipment information is also included in the Orders API response for fulfilled orders:
+
+```bash
+GET /orders?status=fulfilled
+```
+
+The order response will include a `shipments` array with the same shipment data structure.
+
+## Carrier Tracking URLs
+
+MasonHub provides direct tracking URLs for major carriers:
+
+<CardGroup cols={3}>
+  <Card title="UPS" icon="box">
+    `http://ups.com/tracking/{tracking_number}`
+  </Card>
+  <Card title="USPS" icon="envelope">
+    `http://usps.gov/tracking/{tracking_number}`
+  </Card>
+  <Card title="FedEx" icon="truck">
+    `https://www.fedex.com/apps/fedextrack/index.html?action=track&tracknumbers={tracking_number}`
+  </Card>
+</CardGroup>
+
+## Use Cases
+
+### Customer Notifications
+- Send shipping confirmation emails
+- Provide tracking information
+- Update order status on customer portals
+- Generate shipping notifications
+
+### Business Intelligence
+- Track shipment volumes by carrier
+- Monitor average ship times
+- Analyze multi-shipment rates
+- Evaluate carrier performance
+
+### Inventory Planning
+- Demand forecasting
+- Inventory allocation optimization
+- Shipping cost analysis
+- Carrier selection strategies
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Real-time Updates" icon="bell">
+    Use orderEvent callbacks for immediate shipment notifications instead of polling.
+  </Card>
+  <Card title="Multi-shipment Handling" icon="boxes-stacked">
+    Always handle the possibility of multiple shipments per order.
+  </Card>
+  <Card title="Tracking Integration" icon="link">
+    Provide customers with direct tracking links for better experience.
+  </Card>
+  <Card title="Date Range Queries" icon="calendar-range">
+    Use date ranges (`sdt` and `edt`) for efficient historical data retrieval.
+  </Card>
+</CardGroup>

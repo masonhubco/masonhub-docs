@@ -1,0 +1,412 @@
+---
+title: 'MasonHub API Documentation'
+description: 'Complete MasonHub Order Management System API reference and documentation'
+---
+
+The MasonHub REST API enables you to programmatically manage your entire supply chain operations, from catalog management to order fulfillment and everything in between.
+
+## Quick Links
+
+<CardGroup cols={3}>
+  <Card
+    title="Authentication"
+    icon="key"
+    href="/api-reference/authentication"
+  >
+    Get started with JWT bearer tokens
+  </Card>
+  <Card
+    title="API Design"
+    icon="palette"
+    href="/api-reference/api-design-philosophy"
+  >
+    Understand our API principles
+  </Card>
+  <Card
+    title="DataFactory"
+    icon="flask"
+    href="/api-reference/datafactory"
+  >
+    Test with simulation utilities
+  </Card>
+</CardGroup>
+
+## Core Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="Catalog Management"
+    icon="book"
+    href="/api-reference/catalog/get-skus"
+  >
+    SKU management, product information, and catalog operations
+  </Card>
+  <Card
+    title="Inventory Management"
+    icon="boxes-stacked"
+    href="/api-reference/inventory/get-inventory"
+  >
+    Real-time inventory tracking, allocation, and availability
+  </Card>
+  <Card
+    title="Order Management"
+    icon="cart-shopping"
+    href="/api-reference/orders/get-orders"
+  >
+    Order creation, updates, cancellation, and lifecycle management
+  </Card>
+  <Card
+    title="Returns (RMA)"
+    icon="rotate-left"
+    href="/api-reference/returns/get-returns"
+  >
+    Return merchandise authorization and processing
+  </Card>
+</CardGroup>
+
+## Fulfillment Operations
+
+<CardGroup cols={2}>
+  <Card
+    title="Inbound Shipments (ASN)"
+    icon="truck-ramp-box"
+    href="/api-reference/shipments/get-inbound-shipments"
+  >
+    ASN management and receiving operations
+  </Card>
+  <Card
+    title="Outbound Shipments"
+    icon="truck-fast"
+    href="/api-reference/shipments/get-order-shipments"
+  >
+    Outbound shipment tracking and carrier information
+  </Card>
+</CardGroup>
+
+## Integration & Testing
+
+<CardGroup cols={3}>
+  <Card
+    title="Callbacks & Events"
+    icon="webhook"
+    href="/api-reference/callbacks/get-callback-urls"
+  >
+    Real-time webhooks for order and shipment events
+  </Card>
+  <Card
+    title="Callback Events"
+    icon="bolt"
+    href="/api-reference/callback-events/order-events"
+  >
+    Event payloads and specifications
+  </Card>
+  <Card
+    title="DataFactory Testing"
+    icon="vial"
+    href="/api-reference/data-factory/create-available"
+  >
+    Testing utilities for simulating operations
+  </Card>
+</CardGroup>
+
+## Security & Tokens
+
+<Card
+  title="Token Management"
+  icon="shield-halved"
+  href="/api-reference/tokens/generate-new-bearer-token"
+>
+  Generate and manage JWT bearer tokens for API authentication
+</Card>
+
+## Authentication
+
+All API endpoints require HTTPS with a valid JWT Bearer token. Generate tokens through the [Token Management](/api-reference/tokens/generate-new-bearer-token) endpoints.
+
+<Note>
+Bearer tokens begin with the `eyJ` prefix and must be included in the Authorization header of all requests. Keep your bearer tokens secret.
+</Note>
+
+### Using Your Token
+
+Include the bearer token in the Authorization header:
+
+```bash
+curl -X GET "https://app.masonhub.co/{account}/api/v1/orders" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+## Base URLs
+
+<Tabs>
+  <Tab title="Sandbox">
+    ```
+    https://sandbox.masonhub.co/{account_slug}/api/v1/
+    ```
+    Use for development and testing without affecting production data.
+  </Tab>
+  <Tab title="Production">
+    ```
+    https://app.masonhub.co/{account_slug}/api/v1/
+    ```
+    Live production environment for real operations.
+  </Tab>
+</Tabs>
+
+Replace `{account_slug}` with your MasonHub account identifier.
+
+## API Design Principles
+
+The MasonHub API follows consistent design principles for a predictable and powerful developer experience:
+
+<CardGroup cols={2}>
+  <Card
+    title="Search-First Design"
+    icon="magnifying-glass"
+  >
+    GET methods use search parameters for composability and flexible data retrieval. Everything is really just search.
+  </Card>
+  <Card
+    title="Batch Operations"
+    icon="layer-group"
+  >
+    All methods accept and return arrays for efficient bulk operations. Process multiple items in single API calls.
+  </Card>
+  <Card
+    title="Flexible Responses"
+    icon="toggle-on"
+  >
+    Use `list_type=detail|summary` to control response detail levels and optimize data transfer.
+  </Card>
+  <Card
+    title="RESTful Design"
+    icon="code"
+  >
+    Standard GET, POST, PUT, DELETE operations. No PATCH to maintain simplicity.
+  </Card>
+  <Card
+    title="Robust Error Handling"
+    icon="shield-check"
+  >
+    Bulk operations are non-blocking with individual success/failure status for each item.
+  </Card>
+  <Card
+    title="Consistent Formatting"
+    icon="calendar"
+  >
+    RFC3339 date format used throughout for consistency and international support.
+  </Card>
+</CardGroup>
+
+## Data Formats
+
+### Date and Time
+
+All timestamps use **RFC3339** format for consistency and timezone support:
+
+```json
+{
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T14:45:30Z"
+}
+```
+
+### Pagination
+
+Standard pagination parameters across all list endpoints:
+
+<ParamField query="limit" type="integer" default="30">
+  Number of results to return. Range: 1-100.
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Pagination offset for retrieving subsequent pages of results.
+</ParamField>
+
+<ParamField query="list_type" type="string" default="detail">
+  Response detail level. Options:
+  - `detail` - Full information including all fields
+  - `summary` - Condensed view with essential fields only
+</ParamField>
+
+### Response Structure
+
+All list responses follow a consistent structure:
+
+```json
+{
+  "limit": 30,
+  "offset": 0,
+  "list_type": "detail",
+  "data": [
+    {
+      // Array of result objects
+    }
+  ]
+}
+```
+
+### Batch Operation Responses
+
+Bulk operations return detailed status for each item:
+
+```json
+{
+  "records_submitted": 5,
+  "records_processed": 5,
+  "records_failed": 1,
+  "records_succeeded": 4,
+  "results": [
+    {
+      "customer_identifier": "item-001",
+      "status": "success"
+    },
+    {
+      "customer_identifier": "item-002",
+      "status": "failure",
+      "error_message": "SKU not found in catalog"
+    }
+  ]
+}
+```
+
+## API Resources by Category
+
+<AccordionGroup>
+  <Accordion title="Catalog & Inventory">
+    **Catalog Management**
+    - [Get SKUs](/api-reference/catalog/get-skus)
+    - [Create SKUs](/api-reference/catalog/create-skus)
+    - [Update SKUs](/api-reference/catalog/update-skus)
+    - [Delete SKUs](/api-reference/catalog/delete-skus)
+
+    **Inventory Management**
+    - [Get Inventory](/api-reference/inventory/get-inventory)
+    - [Request Snapshot](/api-reference/inventory/request-snapshot)
+    - [Get Locations](/api-reference/inventory/get-locations)
+  </Accordion>
+
+  <Accordion title="Order Management">
+    **Orders**
+    - [Get Orders](/api-reference/orders/get-orders)
+    - [Create Orders](/api-reference/orders/create-orders)
+    - [Update Orders](/api-reference/orders/update-orders)
+    - [Get Order Updates](/api-reference/orders/get-order-updates)
+    - [Cancel Orders](/api-reference/orders/cancel-orders)
+    - [Get Order Cancels](/api-reference/orders/get-order-cancels)
+
+    **Shipments**
+    - [Get Order Shipments](/api-reference/shipments/get-order-shipments)
+
+    **Returns (RMA)**
+    - [Get Returns](/api-reference/returns/get-returns)
+    - [Create Returns](/api-reference/returns/create-returns)
+    - [Update Returns](/api-reference/returns/update-returns)
+    - [Delete Returns](/api-reference/returns/delete-returns)
+  </Accordion>
+
+  <Accordion title="Inbound Shipments">
+    **ASN Management**
+    - [Get Inbound Shipments](/api-reference/shipments/get-inbound-shipments)
+    - [Create Inbound Shipments](/api-reference/shipments/create-inbound-shipments)
+    - [Update Inbound Shipments](/api-reference/shipments/update-inbound-shipments)
+    - [Delete Inbound Shipments](/api-reference/shipments/delete-inbound-shipments)
+  </Accordion>
+
+  <Accordion title="Callbacks & Events">
+    **Callback Management**
+    - [Get Callback URLs](/api-reference/callbacks/get-callback-urls)
+    - [Create Callback URLs](/api-reference/callbacks/create-callback-urls)
+    - [Delete Callback URLs](/api-reference/callbacks/delete-callback-urls)
+
+    **Callback Events**
+    - [SKU Inventory Change](/api-reference/callback-events/sku-inventory-change-event)
+    - [Snapshot Ready](/api-reference/callback-events/snapshot-ready)
+    - [Order Events](/api-reference/callback-events/order-events)
+    - [Order Update Resolutions](/api-reference/callback-events/order-update-resolutions)
+    - [Order Cancel Resolutions](/api-reference/callback-events/order-cancel-resolutions)
+    - [Inbound Shipment Events](/api-reference/callback-events/inbound-shipment-events)
+    - [RMA Events](/api-reference/callback-events/RMA-events)
+  </Accordion>
+
+  <Accordion title="Testing & Security">
+    **DataFactory (Sandbox Only)**
+    - [Create Available Inventory](/api-reference/data-factory/create-available)
+    - [Lose Inventory](/api-reference/data-factory/loose-inventory)
+    - [Ship Order](/api-reference/data-factory/ship-order)
+    - [Order Shipment Event](/api-reference/data-factory/order-shipment-event)
+    - [Resolve Order Update](/api-reference/data-factory/resolve-order-update)
+    - [Resolve Order Cancel](/api-reference/data-factory/resolve-order-cancel)
+    - [Trigger Inbound Shipment Event](/api-reference/data-factory/trigger-inbound-shipment-event)
+    - [RMA Event](/api-reference/data-factory/RMA-event)
+
+    **Token Management**
+    - [Generate New Bearer Token](/api-reference/tokens/generate-new-bearer-token)
+    - [Delete Secret Phrase](/api-reference/tokens/delete-secret-phrase)
+  </Accordion>
+</AccordionGroup>
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="The Stack Trace"
+    icon="timeline"
+    href="/api-reference/stack-trace"
+  >
+    Understanding MasonHub's logging and audit trail system
+  </Card>
+  <Card
+    title="API Design Philosophy"
+    icon="lightbulb"
+    href="/api-reference/api-design-philosophy"
+  >
+    Core principles behind the API design
+  </Card>
+</CardGroup>
+
+## Support
+
+For API support and integration assistance:
+
+<CardGroup cols={2}>
+  <Card
+    title="Integration Support"
+    icon="envelope"
+    href="mailto:integration-support@masonhub.co"
+  >
+    Technical integration questions
+  </Card>
+  <Card
+    title="General Support"
+    icon="headset"
+    href="mailto:support@masonhub.co"
+  >
+    General inquiries and account support
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+Ready to integrate with MasonHub? Follow these steps:
+
+<Steps>
+  <Step title="Generate API Token">
+    Create your JWT bearer token using the [Token Management](/api-reference/tokens/generate-new-bearer-token) endpoint
+  </Step>
+  <Step title="Test in Sandbox">
+    Use the sandbox environment to test your integration without affecting production data
+  </Step>
+  <Step title="Create Catalog">
+    Set up your [SKUs](/api-reference/catalog/create-skus) and product catalog
+  </Step>
+  <Step title="Configure Callbacks">
+    Set up [webhooks](/api-reference/callbacks/create-callback-urls) for real-time event notifications
+  </Step>
+  <Step title="Test with DataFactory">
+    Use [DataFactory](/api-reference/data-factory/create-available) to simulate operations and validate your integration
+  </Step>
+  <Step title="Go Live">
+    Move to production with confidence after thorough testing
+  </Step>
+</Steps>

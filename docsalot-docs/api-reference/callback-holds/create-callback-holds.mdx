@@ -1,0 +1,196 @@
+---
+title: 'Create Callback Holds'
+description: 'Place holds on specific message types to suspend callback delivery'
+api: 'POST /callback_holds'
+---
+
+Create callback holds to temporarily suspend delivery of specific message types to your webhook endpoints. This is useful during maintenance windows, system upgrades, or debugging.
+
+<Warning>
+Events that occur while holds are active will **not** be queued for later delivery. Once you remove the hold, only new events will be delivered.
+</Warning>
+
+## Request Body
+
+The request body accepts an array of message type strings to place on hold.
+
+<ParamField body="message_types" type="string[]" required>
+  Array of message types to place on hold. Common types include:
+  - `skuInventoryChange` - Inventory level changes
+  - `orderEvent` - Order status and lifecycle events
+  - `shipmentEvent` - Shipment tracking updates
+  - `inboundReceived` - Inbound shipment receipts
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/callback_holds" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    "skuInventoryChange",
+    "orderEvent"
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/callback_holds"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    "skuInventoryChange",
+    "orderEvent"
+]
+
+response = requests.post(url, headers=headers, json=data)
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/callback_holds', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    "skuInventoryChange",
+    "orderEvent"
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "status": "success",
+  "holds_created": [
+    "skuInventoryChange",
+    "orderEvent"
+  ],
+  "total_holds": 2
+}
+```
+
+```json 400 Invalid Message Type
+{
+  "error": {
+    "code": "INVALID_MESSAGE_TYPE",
+    "message": "One or more message types are invalid",
+    "details": {
+      "invalid_types": ["unknownEventType"]
+    }
+  }
+}
+```
+
+```json 409 Already On Hold
+{
+  "error": {
+    "code": "ALREADY_ON_HOLD",
+    "message": "Some message types already have holds",
+    "details": {
+      "existing_holds": ["skuInventoryChange"],
+      "new_holds": ["orderEvent"]
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Response Fields
+
+<ResponseField name="status" type="string">
+  Status of the operation. Returns `success` when holds are created.
+</ResponseField>
+
+<ResponseField name="holds_created" type="string[]">
+  Array of message types that were successfully placed on hold.
+</ResponseField>
+
+<ResponseField name="total_holds" type="number">
+  Total number of active holds after this operation.
+</ResponseField>
+
+## Behavior
+
+### Idempotent Operations
+If you create a hold for a message type that's already on hold, the API will acknowledge it without error but won't create a duplicate.
+
+### Multiple Message Types
+You can place holds on multiple message types in a single request. The API processes them atomically - either all succeed or none are created.
+
+### Event Impact
+
+<Info>
+Events that occur during a hold period are **not** delivered and **not** queued. They are effectively skipped. Plan your hold periods accordingly.
+</Info>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Scheduled Maintenance" icon="calendar">
+    Place holds before planned maintenance windows to prevent failed delivery attempts.
+  </Card>
+  <Card title="System Deployment" icon="rocket">
+    Suspend events during application deployments to avoid processing errors.
+  </Card>
+  <Card title="Load Testing" icon="flask">
+    Control event flow during load testing or performance tuning.
+  </Card>
+  <Card title="Emergency Response" icon="triangle-exclamation">
+    Quickly suspend events when detecting issues with your webhook processing.
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Steps>
+  <Step title="Plan Hold Windows">
+    Schedule holds during low-activity periods when possible to minimize lost events.
+  </Step>
+  <Step title="Document Hold Periods">
+    Keep records of when holds are active for troubleshooting and auditing.
+  </Step>
+  <Step title="Test in Sandbox">
+    Test callback hold behavior in sandbox environment before using in production.
+  </Step>
+  <Step title="Remove Promptly">
+    Remove holds as soon as maintenance is complete to resume event delivery.
+  </Step>
+</Steps>
+
+<Warning>
+Remember to remove holds using the [Delete Callback Holds](/api-reference/callback-holds/delete-callback-holds) endpoint when you're ready to resume event delivery.
+</Warning>
+
+## Example Workflow
+
+```python
+# Place holds before maintenance
+hold_types = ["skuInventoryChange", "orderEvent"]
+requests.post(
+    f"{base_url}/callback_holds",
+    headers=headers,
+    json=hold_types
+)
+
+# Perform maintenance tasks
+perform_system_maintenance()
+
+# Remove holds after maintenance
+requests.delete(
+    f"{base_url}/callback_holds",
+    headers=headers,
+    json=hold_types
+)
+```

@@ -1,0 +1,371 @@
+---
+title: 'Order Events'
+description: 'Webhook event providing real-time order lifecycle updates including status changes, shipments, and shorts'
+---
+
+Order Events provide real-time notifications for all order lifecycle changes, including status updates, shipment information, and inventory shorts. This is the primary mechanism for tracking order fulfillment progress.
+
+<Note>
+Orders can ship in multiple packages. The `shipments` array may contain multiple shipment records for a single order.
+</Note>
+
+## Event Payload
+
+```json
+{
+  "callback_url": "https://client.com/api/orderEvent",
+  "message_type": "orderEvent",
+  "message_id": "0896116f-e54b-4756-9d3e-1b0c4a25d821",
+  "data": [
+    {
+      "order_id": "8f1316d5-859f-4802-98b0-63d03a9517ac",
+      "customer_identifier": "12345",
+      "status": "fulfilled",
+      "shipments": [
+        {
+          "shipment_id": "88888",
+          "shipping_provider": "UPS",
+          "shipper_service_level": "ground",
+          "tracking_number": "1z324897234nferg45",
+          "tracking_url": "http://ups.com/tracking/1z324897234nferg45",
+          "shipment_date_time": "2018-08-06T15:11:19Z",
+          "shipment_line_items": [
+            {
+              "sku_customer_id": "shirts872340",
+              "quantity": 2
+            }
+          ]
+        }
+      ],
+      "shorts": [
+        {
+          "sku_customer_id": "pants3422",
+          "quantity": 1,
+          "reason": "damage"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Payload Fields
+
+<ResponseField name="callback_url" type="string">
+  Your registered webhook endpoint URL
+</ResponseField>
+
+<ResponseField name="message_type" type="string">
+  Always `orderEvent` for this event type
+</ResponseField>
+
+<ResponseField name="message_id" type="string">
+  Unique identifier for this event. Use for idempotency checks.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of order updates. Each record contains:
+
+  <Expandable title="Order Data">
+    <ResponseField name="order_id" type="string">
+      MasonHub internal UUID for the order
+    </ResponseField>
+
+    <ResponseField name="customer_identifier" type="string">
+      Your order identifier
+    </ResponseField>
+
+    <ResponseField name="status" type="string">
+      Current order status (see status values below)
+    </ResponseField>
+
+    <ResponseField name="shipments" type="array" optional>
+      Array of shipment records (present when order ships)
+
+      <Expandable title="Shipment Details">
+        <ResponseField name="shipment_id" type="string">
+          MasonHub shipment identifier
+        </ResponseField>
+
+        <ResponseField name="shipping_provider" type="string">
+          Carrier name (UPS, USPS, FedEx, etc.)
+        </ResponseField>
+
+        <ResponseField name="shipper_service_level" type="string">
+          Service level (ground, priority, express)
+        </ResponseField>
+
+        <ResponseField name="tracking_number" type="string">
+          Carrier tracking number
+        </ResponseField>
+
+        <ResponseField name="tracking_url" type="string">
+          Direct URL to carrier tracking page
+        </ResponseField>
+
+        <ResponseField name="shipment_date_time" type="string">
+          Ship date and time (RFC3339)
+        </ResponseField>
+
+        <ResponseField name="shipment_line_items" type="array">
+          Items in this shipment
+
+          <Expandable title="Line Item Details">
+            <ResponseField name="sku_customer_id" type="string">
+              Customer SKU identifier
+            </ResponseField>
+
+            <ResponseField name="quantity" type="integer">
+              Quantity of this SKU in the shipment
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="shorts" type="array" optional>
+      Items that could not be fulfilled due to inventory issues
+
+      <Expandable title="Short Details">
+        <ResponseField name="sku_customer_id" type="string">
+          Customer SKU identifier that was shorted
+        </ResponseField>
+
+        <ResponseField name="quantity" type="integer">
+          Quantity that could not be fulfilled
+        </ResponseField>
+
+        <ResponseField name="reason" type="string">
+          Reason for short: `insufficient_inventory`, `damage`, `quality_hold`, etc.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Order Status Values
+
+<CardGroup cols={2}>
+  <Card title="atWarehouse" icon="warehouse">
+    Order received at distribution center
+  </Card>
+  <Card title="inProcess" icon="box-open">
+    Order being picked and packed
+  </Card>
+  <Card title="packed" icon="box-taped">
+    Order packed and ready to ship
+  </Card>
+  <Card title="fulfilled" icon="truck">
+    Order shipped to customer
+  </Card>
+  <Card title="delivered" icon="house-circle-check">
+    Order delivered to customer
+  </Card>
+  <Card title="canceled" icon="circle-xmark">
+    Order canceled (see cancel reasons)
+  </Card>
+</CardGroup>
+
+## Multi-Shipment Orders
+
+Orders can ship in multiple packages when:
+
+- Items are too large for a single package
+- Items ship from different warehouse locations
+- Inventory availability requires split shipments
+- Business rules dictate splitting
+
+### Multi-Shipment Example
+
+```json
+{
+  "data": [
+    {
+      "order_id": "8f1316d5-859f-4802-98b0-63d03a9517ac",
+      "customer_identifier": "12345",
+      "status": "fulfilled",
+      "shipments": [
+        {
+          "shipment_id": "shipment-1",
+          "tracking_number": "1z324897234nferg45",
+          "shipment_line_items": [
+            { "sku_customer_id": "shirts872340", "quantity": 2 }
+          ]
+        },
+        {
+          "shipment_id": "shipment-2",
+          "tracking_number": "1z987654321abcdef",
+          "shipment_line_items": [
+            { "sku_customer_id": "pants3422", "quantity": 1 }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+<Warning>
+Always handle multiple shipments per order. Iterate through the `shipments` array rather than assuming a single shipment.
+</Warning>
+
+## Implementation Example
+
+```python Python
+@app.route('/api/orderEvent', methods=['POST'])
+def handle_order_event():
+    try:
+        payload = request.get_json()
+        message_id = payload['message_id']
+
+        # Check if already processed
+        if is_message_processed(message_id):
+            return 'OK', 200
+
+        # Process each order update
+        for order in payload['data']:
+            order_id = order['customer_identifier']
+            status = order['status']
+
+            # Update order status
+            update_order_status(order_id, status)
+
+            # Handle shipments
+            if 'shipments' in order and order['shipments']:
+                for shipment in order['shipments']:
+                    tracking = shipment['tracking_number']
+                    carrier = shipment['shipping_provider']
+
+                    # Update shipment info
+                    add_shipment_tracking(order_id, tracking, carrier)
+
+                    # Send customer notification
+                    send_shipping_notification(order_id, tracking)
+
+            # Handle shorts
+            if 'shorts' in order and order['shorts']:
+                for short in order['shorts']:
+                    sku = short['sku_customer_id']
+                    qty = short['quantity']
+                    reason = short['reason']
+
+                    # Log short and notify customer
+                    log_inventory_short(order_id, sku, qty, reason)
+                    notify_customer_of_short(order_id, sku, qty)
+
+        mark_message_processed(message_id)
+        return 'OK', 200
+
+    except Exception as e:
+        logger.error(f"Order event webhook error: {e}")
+        return 'Error', 500
+```
+
+```javascript JavaScript
+app.post('/api/orderEvent', async (req, res) => {
+  try {
+    const payload = req.body;
+    const messageId = payload.message_id;
+
+    // Check if already processed
+    if (await isMessageProcessed(messageId)) {
+      return res.status(200).send('OK');
+    }
+
+    // Process each order update
+    for (const order of payload.data) {
+      const orderId = order.customer_identifier;
+      const status = order.status;
+
+      // Update order status
+      await updateOrderStatus(orderId, status);
+
+      // Handle shipments
+      if (order.shipments?.length > 0) {
+        for (const shipment of order.shipments) {
+          await addShipmentTracking(
+            orderId,
+            shipment.tracking_number,
+            shipment.shipping_provider
+          );
+
+          // Send customer notification
+          await sendShippingNotification(orderId, shipment.tracking_number);
+        }
+      }
+
+      // Handle shorts
+      if (order.shorts?.length > 0) {
+        for (const short of order.shorts) {
+          await logInventoryShort(
+            orderId,
+            short.sku_customer_id,
+            short.quantity,
+            short.reason
+          );
+
+          await notifyCustomerOfShort(orderId, short.sku_customer_id);
+        }
+      }
+    }
+
+    await markMessageProcessed(messageId);
+    res.status(200).send('OK');
+
+  } catch (error) {
+    console.error('Order event webhook error:', error);
+    res.status(500).send('Error');
+  }
+});
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Customer Notifications" icon="bell">
+    Send shipping confirmations and tracking links automatically
+  </Card>
+  <Card title="Order Tracking" icon="location-dot">
+    Update order status in customer portals and dashboards
+  </Card>
+  <Card title="Inventory Alerts" icon="triangle-exclamation">
+    Monitor shorts to identify inventory issues
+  </Card>
+  <Card title="Analytics" icon="chart-bar">
+    Track fulfillment metrics and carrier performance
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Idempotency" icon="shield-check">
+    Use `message_id` to prevent duplicate processing
+  </Card>
+  <Card title="Multi-Shipment Support" icon="boxes-stacked">
+    Always iterate through the shipments array
+  </Card>
+  <Card title="Error Handling" icon="life-ring">
+    Handle missing fields gracefully (shipments/shorts may be absent)
+  </Card>
+  <Card title="Customer Communication" icon="comments">
+    Automate shipping notifications for better customer experience
+  </Card>
+</CardGroup>
+
+## Response Requirements
+
+Your webhook endpoint must:
+
+1. **Respond within 30 seconds** - Return HTTP 200 to acknowledge receipt
+2. **Use proper status codes**:
+   - `200` - Event processed successfully
+   - `500` - Processing error (MasonHub will retry)
+3. **Handle all statuses** - Support all order status values
+4. **Process arrays** - Handle multiple shipments and shorts per order
+
+## Related Events
+
+- [Order Update Resolutions](/api-reference/callback-events/order-update-resolutions) - Confirmation of order update requests
+- [Order Cancel Resolutions](/api-reference/callback-events/order-cancel-resolutions) - Confirmation of cancel requests
+- [SKU Inventory Change Event](/api-reference/callback-events/sku-inventory-change-event) - Inventory updates when orders ship

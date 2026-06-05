@@ -1,0 +1,441 @@
+---
+title: 'Get Orders'
+description: 'Retrieve orders with flexible filtering and response format options'
+api: 'GET /orders'
+---
+
+Retrieve orders from the MasonHub fulfillment system. This endpoint supports both detailed and summary views, with flexible filtering options for efficient data retrieval.
+
+<Note>
+Orders are returned in descending order by creation date. Use pagination parameters for large result sets.
+</Note>
+
+## Query Parameters
+
+Configure your request with these query parameters:
+
+### Primary Filters
+
+<ParamField query="cid" type="string">
+  Filter by customer identifier. Returns specific order by your reference ID.
+</ParamField>
+
+<ParamField query="id" type="string">
+  Filter by MasonHub system ID (UUID). Use for precise order retrieval.
+</ParamField>
+
+<ParamField query="list_type" type="string" default="summary">
+  Response detail level:
+  - `summary` - Basic order information (default)
+  - `detail` - Complete order data including all fields
+</ParamField>
+
+<ParamField query="limit" type="integer" default="100">
+  Maximum number of records to return (1-1000).
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Number of records to skip for pagination.
+</ParamField>
+
+### Date Filters
+
+<ParamField query="created_after" type="string">
+  Filter orders created after this timestamp (RFC3339 format).
+</ParamField>
+
+<ParamField query="created_before" type="string">
+  Filter orders created before this timestamp (RFC3339 format).
+</ParamField>
+
+<ParamField query="updated_after" type="string">
+  Filter orders updated after this timestamp (RFC3339 format).
+</ParamField>
+
+<ParamField query="updated_before" type="string">
+  Filter orders updated before this timestamp (RFC3339 format).
+</ParamField>
+
+### Status Filters
+
+<ParamField query="status" type="string">
+  Filter by order status. Options:
+  - `pending` - Awaiting processing
+  - `processing` - Being picked/packed
+  - `fulfilled` - Shipped
+  - `delivered` - Confirmed delivery
+  - `canceled` - Order canceled
+  - `on_hold` - Temporarily paused
+</ParamField>
+
+<ParamField query="has_shipments" type="boolean">
+  Filter orders by shipment existence:
+  - `true` - Only orders with shipments
+  - `false` - Only orders without shipments
+</ParamField>
+
+<RequestExample>
+```bash cURL
+# Get specific order by customer ID
+curl -X GET "https://app.masonhub.co/{account}/api/v1/orders?cid=129374" \
+  -H "Authorization: Bearer your_jwt_token"
+
+# Get detailed view of recent orders
+curl -X GET "https://app.masonhub.co/{account}/api/v1/orders?list_type=detail&limit=50" \
+  -H "Authorization: Bearer your_jwt_token"
+
+# Get orders created in date range
+curl -X GET "https://app.masonhub.co/{account}/api/v1/orders?created_after=2024-01-01T00:00:00Z&created_before=2024-01-31T23:59:59Z" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+# Get specific order
+url = "https://app.masonhub.co/{account}/api/v1/orders"
+headers = {"Authorization": "Bearer your_jwt_token"}
+params = {"cid": "129374", "list_type": "detail"}
+
+response = requests.get(url, headers=headers, params=params)
+order = response.json()
+
+# Get paginated orders
+params = {
+    "limit": 100,
+    "offset": 0,
+    "list_type": "summary",
+    "status": "processing"
+}
+
+response = requests.get(url, headers=headers, params=params)
+orders = response.json()
+```
+
+```javascript JavaScript
+// Get specific order
+const response = await fetch(
+  'https://app.masonhub.co/{account}/api/v1/orders?cid=129374&list_type=detail',
+  {
+    headers: {
+      'Authorization': 'Bearer your_jwt_token'
+    }
+  }
+);
+const order = await response.json();
+
+// Get orders with filters
+const params = new URLSearchParams({
+  list_type: 'summary',
+  status: 'fulfilled',
+  limit: '50'
+});
+
+const filteredResponse = await fetch(
+  `https://app.masonhub.co/{account}/api/v1/orders?${params}`,
+  {
+    headers: {
+      'Authorization': 'Bearer your_jwt_token'
+    }
+  }
+);
+const orders = await filteredResponse.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Summary Response
+{
+  "total_count": 234,
+  "limit": 100,
+  "offset": 0,
+  "orders": [
+    {
+      "system_id": "550e8400-e29b-41d4-a716-446655440000",
+      "customer_identifier": "129374",
+      "status": "fulfilled",
+      "order_type": "customer",
+      "priority": 100,
+      "submitted_at": "2024-01-15T10:00:00Z",
+      "created_at": "2024-01-15T10:00:15Z",
+      "updated_at": "2024-01-16T14:30:00Z",
+      "line_items_count": 2,
+      "total_quantity": 5,
+      "has_shipments": true
+    },
+    {
+      "system_id": "660f9500-f39c-52e5-b827-557766551111",
+      "customer_identifier": "129375",
+      "status": "processing",
+      "order_type": "customer",
+      "priority": 50,
+      "submitted_at": "2024-01-15T11:00:00Z",
+      "created_at": "2024-01-15T11:00:10Z",
+      "updated_at": "2024-01-15T11:00:10Z",
+      "line_items_count": 1,
+      "total_quantity": 2,
+      "has_shipments": false
+    }
+  ]
+}
+```
+
+```json Detail Response
+{
+  "total_count": 1,
+  "limit": 100,
+  "offset": 0,
+  "orders": [
+    {
+      "system_id": "550e8400-e29b-41d4-a716-446655440000",
+      "customer_identifier": "129374",
+      "status": "fulfilled",
+      "order_type": "customer",
+      "priority": 100,
+      "shipping_provider": "masonhub",
+      "shipper_service_level": "ground",
+      "value_added_services": ["Complimentary Handkerchief"],
+      "special_instructions": "Triple Fold the Sleeves and wrap in Tissue Paper.",
+      "gift_message": "Happy Birthday Freddie!",
+      "shipping_address_name": "John Jacob JingleHeimer-Schmidt III",
+      "shipping_address_street_line_one": "234 House Lane",
+      "shipping_address_street_line_two": null,
+      "shipping_address_city": "Little Falls",
+      "shipping_address_locale": "NJ",
+      "shipping_address_postal_code": "07972",
+      "shipping_address_country_code": "US",
+      "shipping_address_phone_number": "973-999-3333",
+      "shipping_address_type": "residential",
+      "billing_address_name": "John Jacob JingleHeimer-Schmidt III",
+      "billing_address_street_line_one": "234 House Lane",
+      "billing_address_street_line_two": null,
+      "billing_address_city": "Little Falls",
+      "billing_address_locale": "NJ",
+      "billing_address_postal_code": "07972",
+      "billing_address_country_code": "US",
+      "billing_address_phone_number": "973-999-3333",
+      "billing_address_type": "residential",
+      "submitted_at": "2024-01-15T10:00:00Z",
+      "created_at": "2024-01-15T10:00:15Z",
+      "updated_at": "2024-01-16T14:30:00Z",
+      "fulfilled_at": "2024-01-16T14:30:00Z",
+      "line_items": [
+        {
+          "sku_customer_id": "shirts872340",
+          "sku_id": "abc123-def456",
+          "quantity": 2,
+          "quantity_allocated": 2,
+          "quantity_shipped": 2,
+          "promised_delivery_date": "2024-01-20T17:32:28Z",
+          "estimated_delivery_date": "2024-01-20T17:32:28Z"
+        },
+        {
+          "sku_customer_id": "pants445566",
+          "sku_id": "ghi789-jkl012",
+          "quantity": 3,
+          "quantity_allocated": 3,
+          "quantity_shipped": 3,
+          "promised_delivery_date": "2024-01-20T17:32:28Z",
+          "estimated_delivery_date": "2024-01-20T17:32:28Z"
+        }
+      ],
+      "shipments": [
+        {
+          "shipment_id": "ship-001",
+          "tracking_number": "1z324897234nferg45",
+          "tracking_url": "http://ups.com/tracking/1z324897234nferg45",
+          "carrier": "UPS",
+          "service_level": "ground",
+          "shipped_at": "2024-01-16T14:30:00Z",
+          "estimated_delivery": "2024-01-19T17:00:00Z",
+          "line_items": [
+            {
+              "sku_customer_id": "shirts872340",
+              "quantity": 2
+            },
+            {
+              "sku_customer_id": "pants445566",
+              "quantity": 3
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "ORDER_NOT_FOUND",
+    "message": "No order found with specified identifier",
+    "details": {
+      "customer_identifier": "nonexistent-order"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Response Formats
+
+### Summary View
+
+The default `summary` response includes essential order information:
+
+<ResponseField name="system_id" type="string">
+  MasonHub's unique order identifier (UUID)
+</ResponseField>
+
+<ResponseField name="customer_identifier" type="string">
+  Your order reference ID
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current order status
+</ResponseField>
+
+<ResponseField name="order_type" type="string">
+  Order classification
+</ResponseField>
+
+<ResponseField name="priority" type="integer">
+  Order priority level (1-999)
+</ResponseField>
+
+<ResponseField name="submitted_at" type="string">
+  Original submission timestamp
+</ResponseField>
+
+<ResponseField name="line_items_count" type="integer">
+  Number of distinct SKUs
+</ResponseField>
+
+<ResponseField name="total_quantity" type="integer">
+  Total units across all line items
+</ResponseField>
+
+<ResponseField name="has_shipments" type="boolean">
+  Whether order has been shipped
+</ResponseField>
+
+### Detail View
+
+The `detail` response includes all summary fields plus:
+
+<ResponseField name="line_items" type="array">
+  Complete line item details with quantities and allocation status
+</ResponseField>
+
+<ResponseField name="shipments" type="array">
+  Shipment information including tracking details
+</ResponseField>
+
+<ResponseField name="shipping_address_*" type="object">
+  Complete shipping address fields
+</ResponseField>
+
+<ResponseField name="billing_address_*" type="object">
+  Complete billing address fields
+</ResponseField>
+
+<ResponseField name="value_added_services" type="array">
+  Additional services requested
+</ResponseField>
+
+<ResponseField name="special_instructions" type="string">
+  Warehouse handling instructions
+</ResponseField>
+
+## Pagination
+
+Handle large result sets using pagination:
+
+<Steps>
+  <Step title="Initial Request">
+    Start with `offset=0` and your desired `limit` (max 1000)
+  </Step>
+  <Step title="Check Total Count">
+    Response includes `total_count` field showing total matching orders
+  </Step>
+  <Step title="Next Page">
+    Increment `offset` by `limit` value for next page
+  </Step>
+  <Step title="Continue">
+    Repeat until `offset + limit >= total_count`
+  </Step>
+</Steps>
+
+Example pagination flow:
+```python
+def get_all_orders(headers):
+    all_orders = []
+    offset = 0
+    limit = 100
+
+    while True:
+        params = {"limit": limit, "offset": offset}
+        response = requests.get(url, headers=headers, params=params)
+        data = response.json()
+
+        all_orders.extend(data["orders"])
+
+        if offset + limit >= data["total_count"]:
+            break
+
+        offset += limit
+
+    return all_orders
+```
+
+## Order Status Lifecycle
+
+Orders progress through these statuses:
+
+<Steps>
+  <Step title="pending">
+    Order received and awaiting processing
+  </Step>
+  <Step title="processing">
+    Order being picked and packed in warehouse
+  </Step>
+  <Step title="fulfilled">
+    Order shipped with tracking information available
+  </Step>
+  <Step title="delivered">
+    Carrier confirmed delivery to recipient
+  </Step>
+</Steps>
+
+Additional statuses:
+- `canceled` - Order canceled before fulfillment
+- `on_hold` - Order temporarily paused (inventory, payment, or manual hold)
+- `returned` - Order returned after delivery
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Specific Filters" icon="filter">
+    Apply date ranges and status filters to reduce response size and improve performance.
+  </Card>
+  <Card title="Choose Right Detail Level" icon="list">
+    Use `summary` for lists and dashboards, `detail` only when full data needed.
+  </Card>
+  <Card title="Implement Pagination" icon="forward">
+    Always paginate when retrieving multiple orders to avoid timeouts.
+  </Card>
+  <Card title="Cache When Possible" icon="database">
+    Orders in `fulfilled` or `delivered` status rarely change - cache these locally.
+  </Card>
+</CardGroup>
+
+<Tip>
+For real-time order updates, configure [orderEvent callbacks](/api-reference/callback-events/order-events) instead of polling this endpoint.
+</Tip>
+
+## Sources
+
+- [Create, Edit & Cancel Orders | MasonHub API – MasonHub](https://support.masonhub.co/hc/en-us/articles/360052470011-Create-Edit-Cancel-Orders-MasonHub-API)
+- [Order GET and Callback Events :: MasonHub Documentation](https://docs.masonhub.co/releases/order-get/)
+- [MasonHub Order Management and Fulfillment API](https://docs.masonhub.co/api/v1)

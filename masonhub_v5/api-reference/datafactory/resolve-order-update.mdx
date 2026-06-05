@@ -1,0 +1,65 @@
+---
+title: 'Resolve Order Update'
+description: 'Force resolution of pending order update requests (Sandbox only)'
+api: 'POST /data_factory/resolveOrderUpdate'
+---
+
+Force resolution of pending order update requests for testing asynchronous update workflows.
+
+<Warning>
+DataFactory is only available in the sandbox environment.
+</Warning>
+
+## Request Body
+
+<ParamField body="order_update_request_id" type="string" required>
+  UUID of the order update request to resolve.
+</ParamField>
+
+<ParamField body="resolution" type="string" required>
+  Resolution status. Options: `success` or `failure`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/data_factory/resolveOrderUpdate" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[{"order_update_request_id": "0b744e29-b668-4486-85dd-82528b5da0dd", "resolution": "success"}]'
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/data_factory/resolveOrderUpdate"
+response = requests.post(url,
+    headers={"Authorization": "Bearer your_jwt_token"},
+    json=[{"order_update_request_id": "0b744e29-b668-4486-85dd-82528b5da0dd", "resolution": "success"}])
+```
+
+```javascript JavaScript
+await fetch('https://app.masonhub.co/{account}/api/v1/data_factory/resolveOrderUpdate', {
+  method: 'POST',
+  headers: {'Authorization': 'Bearer your_jwt_token', 'Content-Type': 'application/json'},
+  body: JSON.stringify([{order_update_request_id: "0b744e29-b668-4486-85dd-82528b5da0dd", resolution: "success"}])
+});
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "success": true,
+  "data": [{"order_update_request_id": "0b744e29-b668-4486-85dd-82528b5da0dd", "resolution": "success"}]
+}
+```
+</ResponseExample>
+
+## Resolution Values
+
+- **success**: Update applied successfully - triggers success callback
+- **failure**: Update failed - triggers failure callback with error message
+
+## Use Cases
+
+Test order update workflows and **orderUpdateResolution** callback handling.

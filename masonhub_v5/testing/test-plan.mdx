@@ -1,0 +1,321 @@
+---
+title: 'Test Plan'
+description: 'Comprehensive test cases for MasonHub API integration validation'
+---
+
+This comprehensive test plan ensures your integration covers all critical scenarios before production deployment. Complete all test cases to validate your integration's reliability and accuracy.
+
+<Card
+  title="Download Complete Test Plan"
+  icon="download"
+  href="https://drive.google.com/file/d/18ssMrmBU7O_NqRtMtzoC0kv35gFuHHlr/view?usp=drive_link"
+>
+  Access the detailed test case document with step-by-step instructions
+</Card>
+
+## Test Areas Overview
+
+### 1. SKU Synchronization Tests
+
+<Accordion title="Basic SKU Operations">
+  **Test Cases:**
+  - SKU-001: Create standard SKU with all required fields
+  - SKU-002: Update existing SKU information
+  - SKU-003: Handle SKU with missing optional fields
+  - SKU-004: Test SKU deactivation and reactivation
+  - SKU-005: Validate SKU data type enforcement
+  
+  **Expected Results:**
+  - All SKUs created successfully in MasonHub
+  - Updates reflected correctly
+  - Error handling for invalid data
+</Accordion>
+
+<Accordion title="Bundle Product Tests">
+  **Test Cases:**
+  - BUNDLE-001: Create bundle with 2-3 component SKUs
+  - BUNDLE-002: Update bundle composition
+  - BUNDLE-003: Test bundle inventory allocation
+  - BUNDLE-004: Validate bundle fulfillment splitting
+  
+  **Expected Results:**
+  - Bundle components properly linked
+  - Inventory correctly allocated across components
+  - Fulfillment handles component availability
+</Accordion>
+
+<Accordion title="International & Special Products">
+  **Test Cases:**
+  - INTL-001: SKU with harmonized tariff codes
+  - INTL-002: Country of origin specifications
+  - ORMD-001: Hazardous material classification
+  - ORMD-002: Shipping restriction validation
+  
+  **Expected Results:**
+  - International data properly stored
+  - Customs information available for orders
+  - Restricted items handled correctly
+</Accordion>
+
+### 2. Order Lifecycle Tests
+
+<Accordion title="Order Creation Tests">
+  **Test Cases:**
+  - ORDER-001: Single-item domestic order
+  - ORDER-002: Multi-item domestic order
+  - ORDER-003: International order with customs data
+  - ORDER-004: Order with special handling requirements
+  - ORDER-005: Order with invalid SKU (error handling)
+  
+  **Success Criteria:**
+  - Orders created with correct status
+  - All line items properly associated
+  - Error responses for invalid data
+</Accordion>
+
+<Accordion title="Ship Method Mapping Tests">
+  **Test Cases:**
+  - SHIP-001: Ground shipping method
+  - SHIP-002: Express delivery options
+  - SHIP-003: International shipping services
+  - SHIP-004: Will-call pickup
+  - SHIP-005: Invalid ship method (error handling)
+  
+  **Validation Points:**
+  - Correct carrier assignment
+  - Service level properly applied
+  - Cost calculations accurate
+</Accordion>
+
+<Accordion title="Value-Added Services Tests">
+  **Test Cases:**
+  - VAS-001: Gift wrapping service
+  - VAS-002: Custom packaging requirements
+  - VAS-003: Special handling instructions
+  - VAS-004: Multiple VAS on single order
+  
+  **Expected Outcomes:**
+  - VAS tags properly applied
+  - Instructions visible to warehouse
+  - Additional costs calculated correctly
+</Accordion>
+
+### 3. Inventory & Fulfillment Tests
+
+<Accordion title="Inventory Validation">
+  **Test Cases:**
+  - INV-001: Check available inventory before order
+  - INV-002: Handle insufficient inventory scenario
+  - INV-003: Test inventory allocation for pending orders
+  - INV-004: Validate inventory across multiple locations
+  
+  **Success Metrics:**
+  - Accurate inventory reporting
+  - Proper allocation handling
+  - Prevention of overselling
+</Accordion>
+
+<Accordion title="Fulfillment Scenarios">
+  **Test Cases:**
+  - FUL-001: Complete order fulfillment
+  - FUL-002: Split shipment fulfillment
+  - FUL-003: Partial fulfillment (short shipment)
+  - FUL-004: Backorder creation and fulfillment
+  
+  **Validation Points:**
+  - Correct tracking number generation
+  - Accurate shipment splitting
+  - Proper backorder handling
+</Accordion>
+
+### 4. Inbound Shipment Tests
+
+<Accordion title="Receiving Process">
+  **Test Cases:**
+  - IB-001: Create inbound shipment schedule
+  - IB-002: Full receipt processing
+  - IB-003: Partial receipt with discrepancies
+  - IB-004: Overage handling
+  - IB-005: Damaged goods processing
+  
+  **Expected Results:**
+  - Receipts properly recorded
+  - Inventory levels updated correctly
+  - Discrepancies flagged for review
+</Accordion>
+
+### 5. Data Synchronization Tests
+
+<Accordion title="Polling Method Tests">
+  **Test Cases:**
+  - POLL-001: Retrieve order status updates
+  - POLL-002: Get shipment tracking information
+  - POLL-003: Fetch inventory snapshots
+  - POLL-004: Handle pagination for large datasets
+  - POLL-005: Test rate limit compliance
+  
+  **Performance Metrics:**
+  - Response times under 2 seconds
+  - Successful pagination handling
+  - Proper rate limit respect
+</Accordion>
+
+<Accordion title="Webhook Tests">
+  **Test Cases:**
+  - HOOK-001: Order status change notifications
+  - HOOK-002: Shipment tracking updates
+  - HOOK-003: Inventory level changes
+  - HOOK-004: Inbound receipt confirmations
+  - HOOK-005: Webhook authentication validation
+  
+  **Validation Criteria:**
+  - Events received within 30 seconds
+  - Payload format matches specification
+  - Authentication headers present
+</Accordion>
+
+## Round-Trip Validation
+
+<Warning>
+**Critical Test**: Ensure complete round-trip data flow from order creation to ERP update.
+</Warning>
+
+### End-to-End Test Scenario
+
+<Steps>
+  <Step title="Order Submission">
+    Submit test order through your ERP integration
+  </Step>
+  <Step title="MasonHub Processing">
+    Verify order appears correctly in MasonHub OMS
+  </Step>
+  <Step title="Fulfillment Execution">
+    Confirm order picks, packs, and ships
+  </Step>
+  <Step title="Tracking Generation">
+    Validate tracking number and carrier assignment
+  </Step>
+  <Step title="ERP Update">
+    Ensure tracking data flows back to ERP system
+  </Step>
+  <Step title="Customer Notification">
+    Verify customer receives shipping notification
+  </Step>
+</Steps>
+
+## Error Handling Tests
+
+### API Error Scenarios
+
+<CardGroup cols={2}>
+  <Card
+    title="Authentication Errors"
+    icon="lock"
+  >
+    - Expired tokens
+    - Invalid credentials
+    - Missing authentication headers
+  </Card>
+  <Card
+    title="Validation Errors"
+    icon="exclamation-triangle"
+  >
+    - Missing required fields
+    - Invalid data formats
+    - Business rule violations
+  </Card>
+  <Card
+    title="Rate Limiting"
+    icon="clock"
+  >
+    - Exceeding request limits
+    - Proper backoff implementation
+    - Queue management
+  </Card>
+  <Card
+    title="Network Issues"
+    icon="wifi"
+  >
+    - Connection timeouts
+    - Intermittent failures
+    - Recovery mechanisms
+  </Card>
+</CardGroup>
+
+## Performance Testing
+
+### Load Testing Scenarios
+
+- **Concurrent Orders**: Submit multiple orders simultaneously
+- **Bulk SKU Updates**: Process large product catalog changes
+- **High-Volume Polling**: Test frequent status check scenarios
+- **Webhook Bursts**: Handle multiple simultaneous webhook deliveries
+
+## Test Environment Setup
+
+### Required Test Data
+
+<Tabs>
+  <Tab title="Products">
+    - Standard products (10-20 SKUs)
+    - Bundle products (2-3 bundles)
+    - International products (5 SKUs)
+    - ORMD products (2-3 SKUs)
+  </Tab>
+  <Tab title="Customers">
+    - Domestic shipping addresses
+    - International shipping addresses
+    - PO Box addresses
+    - Business addresses
+  </Tab>
+  <Tab title="Inventory">
+    - Adequate stock levels for testing
+    - Low stock scenarios
+    - Zero stock situations
+  </Tab>
+</Tabs>
+
+## Test Execution Checklist
+
+<Steps>
+  <Step title="Environment Preparation">
+    - [ ] Sandbox access confirmed
+    - [ ] Test data loaded
+    - [ ] API credentials configured
+    - [ ] Webhook endpoints set up
+  </Step>
+  <Step title="Test Execution">
+    - [ ] All SKU tests completed
+    - [ ] Order lifecycle tests passed
+    - [ ] Fulfillment scenarios validated
+    - [ ] Data sync methods tested
+    - [ ] Error handling verified
+  </Step>
+  <Step title="Validation">
+    - [ ] Round-trip testing successful
+    - [ ] Performance requirements met
+    - [ ] Error recovery confirmed
+    - [ ] Integration team sign-off
+  </Step>
+</Steps>
+
+## Documentation & Sign-off
+
+### Test Results Documentation
+
+Document the following for each test case:
+- **Test Case ID**: Reference number
+- **Execution Date**: When test was performed
+- **Result**: Pass/Fail/Blocked
+- **Notes**: Any observations or issues
+- **Retests**: If applicable, retest results
+
+### Ready for Production Criteria
+
+<Note>
+**All test cases must pass before proceeding to production deployment.**
+</Note>
+
+## Next Steps
+
+Once all test cases pass successfully, you're ready to proceed with [production readiness planning](/production/readiness-checklist).

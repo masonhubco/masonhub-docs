@@ -1,0 +1,209 @@
+---
+title: 'Delete SKUs'
+description: 'Remove SKUs from the Item Master catalog'
+api: 'DELETE /skus'
+---
+
+Delete one or more SKUs from the MasonHub catalog. This endpoint marks SKUs as deleted using their `customer_identifier`.
+
+<Note>
+**Data Retention**: SKU deletion removes the item from active catalog views, but does not delete historical data. When a physical unit is present, MasonHub still tracks its inventory counts and history in perpetuity. Even if all units have been shipped, consumed, or relabeled, all previous history is maintained.
+</Note>
+
+## Request Body
+
+The request body accepts an array of objects, each containing the `customer_identifier` of the SKU to delete.
+
+<ParamField body="customer_identifier" type="string" required>
+  The unique customer SKU identifier of the SKU to delete.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X DELETE "https://app.masonhub.co/{account}/api/v1/skus" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "pants4523"
+    },
+    {
+      "customer_identifier": "shirts450293"
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/skus"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    {"customer_identifier": "pants4523"},
+    {"customer_identifier": "shirts450293"}
+]
+
+response = requests.delete(url, headers=headers, json=data)
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/skus', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    { customer_identifier: "pants4523" },
+    { customer_identifier: "shirts450293" }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 2,
+  "records_processed": 2,
+  "records_failed": 0,
+  "records_succeeded": 2,
+  "results": [
+    {
+      "customer_identifier": "pants4523",
+      "status": "deleted"
+    },
+    {
+      "customer_identifier": "shirts450293",
+      "status": "deleted"
+    }
+  ]
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "SKU_NOT_FOUND",
+    "message": "One or more SKUs not found",
+    "details": {
+      "not_found": ["nonexistent-sku-123"]
+    }
+  }
+}
+```
+
+```json 409 Conflict
+{
+  "error": {
+    "code": "SKU_HAS_INVENTORY",
+    "message": "Cannot delete SKU with active inventory",
+    "details": {
+      "customer_identifier": "pants4523",
+      "available_quantity": 150,
+      "allocated_quantity": 25
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Important Considerations
+
+<Warning>
+Deleting a SKU does **not** remove any inventory for that SKU. Physical units in the warehouse will continue to be tracked.
+</Warning>
+
+### What Happens When You Delete a SKU
+
+<Steps>
+  <Step title="Catalog Removal">
+    The SKU is removed from active catalog views and search results
+  </Step>
+  <Step title="Inventory Preserved">
+    Any existing inventory remains tracked in the system
+  </Step>
+  <Step title="History Maintained">
+    All order history, shipment records, and inventory transactions are preserved
+  </Step>
+  <Step title="Cannot Reorder">
+    The SKU cannot be included in new orders until re-created
+  </Step>
+</Steps>
+
+### Moving Inventory to a New SKU
+
+If you need to move inventory from a deleted/inactive SKU to a new SKU:
+
+<Card title="Relabeling Request" icon="arrows-rotate">
+  Contact the MasonHub operations team to request a relabeling operation. This will transfer physical units from the old SKU to a new SKU while maintaining proper inventory tracking.
+</Card>
+
+## Batch Deletion
+
+Delete multiple SKUs in a single request by including multiple objects in the array:
+
+```json
+[
+  { "customer_identifier": "sku-001" },
+  { "customer_identifier": "sku-002" },
+  { "customer_identifier": "sku-003" }
+]
+```
+
+The response will include the status of each individual deletion in the `results` array.
+
+## Partial Failure Handling
+
+If some SKUs in a batch cannot be deleted (e.g., not found), the API will still attempt to delete the remaining SKUs:
+
+```json
+{
+  "records_submitted": 3,
+  "records_processed": 3,
+  "records_failed": 1,
+  "records_succeeded": 2,
+  "results": [
+    {
+      "customer_identifier": "sku-001",
+      "status": "deleted"
+    },
+    {
+      "customer_identifier": "sku-002",
+      "status": "deleted"
+    },
+    {
+      "customer_identifier": "sku-003",
+      "status": "failed",
+      "error": "SKU not found"
+    }
+  ]
+}
+```
+
+## When to Delete vs. Deactivate
+
+<CardGroup cols={2}>
+  <Card title="Delete SKU" icon="trash">
+    - Product permanently discontinued
+    - SKU was created in error
+    - No future inventory expected
+  </Card>
+  <Card title="Keep SKU" icon="pause">
+    - Temporarily out of stock
+    - Seasonal products
+    - May need historical reporting
+  </Card>
+</CardGroup>
+
+<Note>
+Since SKU history is preserved even after deletion, you can safely delete SKUs when they are no longer needed for active operations.
+</Note>

@@ -1,0 +1,498 @@
+---
+title: 'Get Order Updates'
+description: 'Retrieve status and details of order update requests'
+api: 'GET /order_update_requests'
+---
+
+Retrieve the status and details of previously submitted order update requests. Use this endpoint to monitor the asynchronous processing of order modifications and verify successful updates.
+
+<Note>
+Order update requests are processed asynchronously. Poll this endpoint or configure webhooks to track completion status.
+</Note>
+
+## Query Parameters
+
+Filter and retrieve update requests with these parameters:
+
+<ParamField query="id" type="string">
+  Filter by update request system ID (UUID). Returns specific update request.
+</ParamField>
+
+<ParamField query="cid" type="string">
+  Filter by customer identifier. Returns all update requests for a specific order.
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter by request status:
+  - `pending` - Awaiting processing
+  - `processing` - Currently being processed
+  - `success` - Update completed successfully
+  - `failed` - Update failed with errors
+  - `partial` - Some updates applied, others failed
+</ParamField>
+
+<ParamField query="limit" type="integer" default="100">
+  Maximum number of records to return (1-1000).
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Number of records to skip for pagination.
+</ParamField>
+
+<ParamField query="created_after" type="string">
+  Filter requests created after this timestamp (RFC3339 format).
+</ParamField>
+
+<ParamField query="created_before" type="string">
+  Filter requests created before this timestamp (RFC3339 format).
+</ParamField>
+
+<ParamField query="resolved_after" type="string">
+  Filter requests resolved after this timestamp (RFC3339 format).
+</ParamField>
+
+<ParamField query="resolved_before" type="string">
+  Filter requests resolved before this timestamp (RFC3339 format).
+</ParamField>
+
+<RequestExample>
+```bash cURL
+# Get specific update request by ID
+curl -X GET "https://app.masonhub.co/{account}/api/v1/order_update_requests?id=0b744e29-b668-4486-85dd-82528b5da0dd" \
+  -H "Authorization: Bearer your_jwt_token"
+
+# Get all update requests for an order
+curl -X GET "https://app.masonhub.co/{account}/api/v1/order_update_requests?cid=129374" \
+  -H "Authorization: Bearer your_jwt_token"
+
+# Get pending update requests
+curl -X GET "https://app.masonhub.co/{account}/api/v1/order_update_requests?status=pending&limit=50" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/order_update_requests"
+headers = {"Authorization": "Bearer your_jwt_token"}
+
+# Check specific update request
+params = {"id": "0b744e29-b668-4486-85dd-82528b5da0dd"}
+response = requests.get(url, headers=headers, params=params)
+update_status = response.json()
+
+# Get all updates for an order
+params = {"cid": "129374"}
+response = requests.get(url, headers=headers, params=params)
+order_updates = response.json()
+
+# Poll for pending updates
+params = {"status": "pending", "limit": 100}
+response = requests.get(url, headers=headers, params=params)
+pending_updates = response.json()
+```
+
+```javascript JavaScript
+// Check specific update request
+const response = await fetch(
+  'https://app.masonhub.co/{account}/api/v1/order_update_requests?id=0b744e29-b668-4486-85dd-82528b5da0dd',
+  {
+    headers: {
+      'Authorization': 'Bearer your_jwt_token'
+    }
+  }
+);
+const updateStatus = await response.json();
+
+// Get all updates for an order
+const orderUpdates = await fetch(
+  'https://app.masonhub.co/{account}/api/v1/order_update_requests?cid=129374',
+  {
+    headers: {
+      'Authorization': 'Bearer your_jwt_token'
+    }
+  }
+);
+const updates = await orderUpdates.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "total_count": 3,
+  "limit": 100,
+  "offset": 0,
+  "update_requests": [
+    {
+      "system_id": "0b744e29-b668-4486-85dd-82528b5da0dd",
+      "customer_identifier": "129374",
+      "status": "success",
+      "submitted_at": "2024-01-17T10:00:00Z",
+      "resolved_at": "2024-01-17T10:00:45Z",
+      "updates_applied": {
+        "shipper_service_level": {
+          "old": "ground",
+          "new": "express"
+        },
+        "priority": {
+          "old": 100,
+          "new": 150
+        }
+      },
+      "processing_time_ms": 450,
+      "order_status": "processing"
+    },
+    {
+      "system_id": "1c855f30-c779-5597-96ee-93639c6eb1ee",
+      "customer_identifier": "129374",
+      "status": "failed",
+      "submitted_at": "2024-01-16T15:30:00Z",
+      "resolved_at": "2024-01-16T15:30:05Z",
+      "error": {
+        "code": "ORDER_LOCKED",
+        "message": "Cannot update order in fulfilled status",
+        "details": {
+          "order_status": "fulfilled",
+          "shipped_at": "2024-01-16T14:00:00Z"
+        }
+      },
+      "processing_time_ms": 50
+    },
+    {
+      "system_id": "2d966g41-d88a-6608-a7ff-a4740d7fc2ff",
+      "customer_identifier": "129374",
+      "status": "pending",
+      "submitted_at": "2024-01-17T11:00:00Z",
+      "submitted_changes": {
+        "line_items": [
+          {
+            "sku_customer_id": "shirts872340",
+            "quantity": 5
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+```json Partial Success Response
+{
+  "update_requests": [
+    {
+      "system_id": "3ea77h52-e99b-7719-b8gg-b5851e8gd3gg",
+      "customer_identifier": "129375",
+      "status": "partial",
+      "submitted_at": "2024-01-17T09:00:00Z",
+      "resolved_at": "2024-01-17T09:01:00Z",
+      "updates_applied": {
+        "shipping_address_street_line_one": {
+          "old": "123 Old Street",
+          "new": "456 New Avenue"
+        }
+      },
+      "updates_failed": {
+        "line_items": {
+          "error": "Insufficient inventory for requested quantity increase",
+          "requested": [
+            {
+              "sku_customer_id": "pants445566",
+              "quantity": 10
+            }
+          ]
+        }
+      },
+      "processing_time_ms": 1000
+    }
+  ]
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "UPDATE_REQUEST_NOT_FOUND",
+    "message": "No update request found with specified ID",
+    "details": {
+      "id": "nonexistent-id"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Response Fields
+
+<ResponseField name="system_id" type="string">
+  Unique identifier for the update request
+</ResponseField>
+
+<ResponseField name="customer_identifier" type="string">
+  Your order reference ID
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current status of the update request:
+  - `pending` - Queued for processing
+  - `processing` - Currently being applied
+  - `success` - All updates applied successfully
+  - `failed` - Updates could not be applied
+  - `partial` - Some updates applied, others failed
+</ResponseField>
+
+<ResponseField name="submitted_at" type="string">
+  Timestamp when update request was submitted
+</ResponseField>
+
+<ResponseField name="resolved_at" type="string">
+  Timestamp when processing completed (null if pending)
+</ResponseField>
+
+<ResponseField name="updates_applied" type="object">
+  Details of successfully applied changes with old/new values
+</ResponseField>
+
+<ResponseField name="updates_failed" type="object">
+  Details of failed updates with error reasons
+</ResponseField>
+
+<ResponseField name="error" type="object">
+  Error details if entire request failed
+</ResponseField>
+
+<ResponseField name="processing_time_ms" type="integer">
+  Time taken to process the request in milliseconds
+</ResponseField>
+
+<ResponseField name="order_status" type="string">
+  Current status of the order after update
+</ResponseField>
+
+## Update Request Lifecycle
+
+<Steps>
+  <Step title="pending">
+    Request received and queued for processing
+  </Step>
+  <Step title="processing">
+    System actively applying updates to the order
+  </Step>
+  <Step title="Resolution">
+    Final status determined:
+    - `success` - All changes applied
+    - `failed` - No changes applied
+    - `partial` - Some changes applied
+  </Step>
+</Steps>
+
+## Polling Strategy
+
+Implement efficient polling to monitor update status:
+
+```python
+import time
+import requests
+
+def wait_for_update_completion(update_id, headers, timeout=300):
+    """
+    Poll for update completion with exponential backoff
+    """
+    url = f"https://app.masonhub.co/{{account}}/api/v1/order_update_requests"
+    start_time = time.time()
+    poll_interval = 5  # Start with 5 seconds
+
+    while time.time() - start_time < timeout:
+        response = requests.get(
+            url,
+            headers=headers,
+            params={"id": update_id}
+        )
+
+        data = response.json()
+        if data["update_requests"]:
+            status = data["update_requests"][0]["status"]
+
+            if status in ["success", "failed", "partial"]:
+                return data["update_requests"][0]
+
+        time.sleep(poll_interval)
+        # Exponential backoff with max 60 seconds
+        poll_interval = min(poll_interval * 1.5, 60)
+
+    raise TimeoutError(f"Update {update_id} did not complete within {timeout} seconds")
+```
+
+## Common Update Scenarios
+
+Track different types of order modifications:
+
+<Tabs>
+  <Tab title="Address Change">
+    Monitor shipping address updates:
+
+    ```json
+    {
+      "updates_applied": {
+        "shipping_address_street_line_one": {
+          "old": "123 Main St",
+          "new": "456 Park Ave"
+        },
+        "shipping_address_city": {
+          "old": "Old City",
+          "new": "New City"
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Service Level Change">
+    Track shipping speed upgrades:
+
+    ```json
+    {
+      "updates_applied": {
+        "shipper_service_level": {
+          "old": "ground",
+          "new": "express"
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Quantity Change">
+    Monitor line item quantity adjustments:
+
+    ```json
+    {
+      "updates_applied": {
+        "line_items": {
+          "old": [{"sku_customer_id": "SKU123", "quantity": 2}],
+          "new": [{"sku_customer_id": "SKU123", "quantity": 5}]
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Error Types
+
+Common error codes and their meanings:
+
+<AccordionGroup>
+  <Accordion title="ORDER_LOCKED">
+    Order cannot be modified in its current status (e.g., already fulfilled)
+
+    ```json
+    {
+      "code": "ORDER_LOCKED",
+      "message": "Cannot update order in fulfilled status",
+      "order_status": "fulfilled"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="INSUFFICIENT_INVENTORY">
+    Not enough stock available for requested quantity increase
+
+    ```json
+    {
+      "code": "INSUFFICIENT_INVENTORY",
+      "message": "Cannot increase quantity - only 3 units available",
+      "available_quantity": 3,
+      "requested_quantity": 10
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="INVALID_SKU">
+    Referenced SKU doesn't exist in catalog
+
+    ```json
+    {
+      "code": "INVALID_SKU",
+      "message": "SKU not found in catalog",
+      "sku_customer_id": "INVALID123"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="VALIDATION_ERROR">
+    Request data failed validation
+
+    ```json
+    {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid shipping address",
+      "field": "shipping_address_postal_code"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Webhooks" icon="webhook">
+    Configure [orderUpdateResolution](/api-reference/callback-events/order-update-resolutions) callbacks instead of polling
+  </Card>
+  <Card title="Implement Backoff" icon="clock">
+    Use exponential backoff when polling to reduce API load
+  </Card>
+  <Card title="Handle Partials" icon="circle-half-stroke">
+    Check both `updates_applied` and `updates_failed` for partial successes
+  </Card>
+  <Card title="Track Request IDs" icon="fingerprint">
+    Store system_id from submission for reliable status tracking
+  </Card>
+</CardGroup>
+
+<Warning>
+Update requests older than 30 days may be archived and unavailable through this endpoint. Store important update history in your own system.
+</Warning>
+
+## Webhook Alternative
+
+For real-time updates without polling, configure webhooks:
+
+```bash
+POST /callbacks
+{
+  "callback_url": "https://your-api.com/webhooks/order-updates",
+  "event_type": "orderUpdateResolution"
+}
+```
+
+You'll receive notifications when update requests complete:
+
+```json
+{
+  "message_type": "orderUpdateResolution",
+  "data": [
+    {
+      "update_request_id": "0b744e29-b668-4486-85dd-82528b5da0dd",
+      "customer_identifier": "129374",
+      "status": "success",
+      "resolved_at": "2024-01-17T10:00:45Z"
+    }
+  ]
+}
+```
+
+<Tip>
+For high-volume operations, use webhooks instead of polling. This reduces API calls and provides faster notification of update completions.
+</Tip>
+
+## Related Endpoints
+
+- [Update Orders](/api-reference/orders/update-orders) - Submit order update requests
+- [Get Orders](/api-reference/orders/get-orders) - Retrieve current order data
+- [Order Update Resolutions](/api-reference/callback-events/order-update-resolutions) - Webhook configuration
+
+## Sources
+
+- [Order Updates :: MasonHub Documentation](https://docs.masonhub.co/releases/order_updates/)
+- [Create, Edit & Cancel Orders | MasonHub API – MasonHub](https://support.masonhub.co/hc/en-us/articles/360052470011-Create-Edit-Cancel-Orders-MasonHub-API)

@@ -1,0 +1,240 @@
+---
+title: 'Delete Inbound Shipments'
+description: 'Soft delete inbound shipments by customer identifier'
+api: 'DELETE /inbound_shipments'
+---
+
+Soft delete inbound shipments that are no longer needed. This endpoint performs a logical deletion, maintaining records for audit purposes.
+
+<Warning>
+Only shipments with `open` status can be deleted. Shipments that are already on dock or being received cannot be removed.
+</Warning>
+
+<Note>
+This is a soft delete operation. Shipments are marked as deleted but remain in the system for historical tracking and reconciliation.
+</Note>
+
+## Request Body Schema
+
+Send an array of objects containing the customer identifiers of shipments to delete.
+
+<ParamField body="customer_identifier" type="string" required>
+  Unique shipment identifier that matches the existing shipment you want to delete.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X DELETE "https://app.masonhub.co/{account}/api/v1/inbound_shipments" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "shipment234523"
+    },
+    {
+      "customer_identifier": "shipment234524"
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/inbound_shipments"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+payload = [
+    {
+        "customer_identifier": "shipment234523"
+    },
+    {
+        "customer_identifier": "shipment234524"
+    }
+]
+
+response = requests.delete(url, headers=headers, data=json.dumps(payload))
+data = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/inbound_shipments', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      customer_identifier: "shipment234523"
+    },
+    {
+      customer_identifier: "shipment234524"
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "success": true,
+  "data": [
+    {
+      "customer_identifier": "shipment234523",
+      "status": "deleted",
+      "deleted_at": "2018-12-02T14:30:00Z"
+    },
+    {
+      "customer_identifier": "shipment234524",
+      "status": "deleted",
+      "deleted_at": "2018-12-02T14:30:00Z"
+    }
+  ]
+}
+```
+
+```json 400 Bad Request - Invalid Status
+{
+  "error": {
+    "code": "INVALID_STATUS",
+    "message": "Cannot delete shipment that is not in 'open' status",
+    "details": {
+      "customer_identifier": "shipment234523",
+      "current_status": "onDock",
+      "allowed_status": "open"
+    }
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "SHIPMENT_NOT_FOUND",
+    "message": "Shipment not found",
+    "details": {
+      "customer_identifier": "shipment234523"
+    }
+  }
+}
+```
+
+```json 207 Multi-Status - Partial Success
+{
+  "success": false,
+  "data": [
+    {
+      "customer_identifier": "shipment234523",
+      "status": "deleted",
+      "deleted_at": "2018-12-02T14:30:00Z"
+    }
+  ],
+  "errors": [
+    {
+      "customer_identifier": "shipment234524",
+      "error": {
+        "code": "INVALID_STATUS",
+        "message": "Cannot delete shipment that is not in 'open' status",
+        "current_status": "receivingStarted"
+      }
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Delete Behavior
+
+When you delete an inbound shipment:
+
+<Steps>
+  <Step title="Status Validation">
+    System checks that the shipment is in `open` status
+  </Step>
+  <Step title="Soft Delete">
+    Shipment is marked as deleted but remains in the system
+  </Step>
+  <Step title="Inventory Adjustment">
+    Expected inventory is reduced for all line item SKUs
+  </Step>
+  <Step title="Callback Triggered">
+    **skuInventoryChange** callbacks are sent for affected SKUs
+  </Step>
+</Steps>
+
+## When to Delete Shipments
+
+<AccordionGroup>
+  <Accordion title="Cancelled Orders">
+    Delete shipments when purchase orders are cancelled before the inventory ships.
+  </Accordion>
+
+  <Accordion title="Duplicate Entries">
+    Remove duplicate shipment entries created by mistake.
+  </Accordion>
+
+  <Accordion title="Changed Plans">
+    Delete shipments when business plans change and inventory won't be sent.
+  </Accordion>
+
+  <Accordion title="Data Correction">
+    Remove incorrect shipments and recreate them with the correct information.
+  </Accordion>
+</AccordionGroup>
+
+## Batch Operations
+
+You can delete multiple shipments in a single request. The system processes each deletion independently:
+
+- **Full Success**: All shipments deleted successfully (HTTP 200)
+- **Partial Success**: Some deletions succeeded, others failed (HTTP 207)
+- **Full Failure**: All deletions failed (HTTP 400)
+
+<Tip>
+When batch deleting, check the response carefully. The API returns detailed information about which shipments were successfully deleted and which failed, including specific error reasons.
+</Tip>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Check Status First" icon="circle-check">
+    Verify the shipment is still in `open` status before attempting to delete.
+  </Card>
+  <Card title="Handle Partial Success" icon="list-check">
+    In batch operations, handle the scenario where some deletions succeed and others fail.
+  </Card>
+  <Card title="Monitor Inventory" icon="chart-line">
+    Use callbacks to track expected inventory changes after deletion.
+  </Card>
+  <Card title="Consider Updates" icon="pen">
+    If shipment details changed, consider updating instead of deleting and recreating.
+  </Card>
+</CardGroup>
+
+## Status Restrictions
+
+<Warning>
+Shipments can only be deleted when in **open** status. Once a shipment moves to:
+- **onDock**: Shipment has arrived - contact MasonHub support
+- **receivingStarted**: Processing has begun - deletion not allowed
+- **receivingComplete**: Processing complete - shipment is closed
+</Warning>
+
+## Inventory Impact
+
+Deleting an inbound shipment immediately affects expected inventory:
+
+- Expected quantities are reduced for all line items
+- Available and allocated inventory remain unchanged
+- **skuInventoryChange** callbacks notify you of the changes
+- The system maintains accurate inventory projections
+
+<Info>
+If you accidentally delete a shipment, you can recreate it using the same `customer_identifier` as long as no new shipment with that identifier has been created.
+</Info>

@@ -1,0 +1,367 @@
+---
+title: 'The Stack Trace'
+description: 'Understanding MasonHub logging, audit trails, and system transparency'
+icon: 'timeline'
+---
+
+# The Stack Trace
+
+MasonHub's Order Management System (OMS) logs and maintains version history of all operations it performs. Every request from clients, every queued item processed, and every action taken is recorded and connected back to the preceding action that either called it or caused it.
+
+<Note>
+The stack trace isn't just a feature of the product—it **is** the product. MasonHub's guarantee is that the system is accurate, reliable, and repeatable, and the stack trace is essential to maintaining and proving these qualities.
+</Note>
+
+## Overview
+
+In programming, a stack trace typically shows the execution path of code to help engineers find errors or performance bottlenecks. In MasonHub's OMS, the stack trace serves a broader purpose: it connects every action in the system back to its origin, providing complete transparency and auditability for all operations.
+
+As a 3PL (Third-Party Logistics provider), MasonHub needs to know what happened, when it happened, and how to troubleshoot if needed.
+
+## What Gets Logged
+
+The "stack" is conceptually simple but comprehensive in implementation. Every API call and subsequent action is logged and stored with complete context and relationships.
+
+<CardGroup cols={2}>
+  <Card title="Inbound Requests" icon="arrow-down">
+    Complete API request and response logging
+  </Card>
+  <Card title="Queue Processing" icon="clock">
+    Individual payload processing and results
+  </Card>
+  <Card title="Inventory Changes" icon="boxes-stacked">
+    Every inventory ledger entry with references
+  </Card>
+  <Card title="Outbound Messages" icon="arrow-up">
+    All callbacks/webhooks sent to clients
+  </Card>
+</CardGroup>
+
+## Logging Components
+
+### 1. Inbound Requests
+
+When a client makes an API request (for example, creating SKUs), MasonHub first records the request and response:
+
+<AccordionGroup>
+  <Accordion title="Example: SKU Creation Request Log">
+    ```json
+    {
+      "id": "43f66b48-24bd-4c17-bc0f-16355861beb5",
+      "account_id": "[account id for test account]",
+      "request_method": "POST",
+      "request_url": "/test/api/v1/skus",
+      "request_headers": {
+        "user-agent": "PostmanRuntime/7.4.0",
+        "cache-control": "no-cache"
+      },
+      "request_body": [
+        {
+          "customer_identifier": "kit00001",
+          "brand_name": "peter piper",
+          "customer_bar_code": "kit234523",
+          "dim_height": 12,
+          "dim_weight": 10,
+          "dim_length": 2,
+          "price": 15.95,
+          "unit_cost": 5.95,
+          "product_category": "shirt",
+          "product_name": "McShirt",
+          "is_kit": true,
+          "kit_skus": [
+            {
+              "customer_identifier": "10000",
+              "quantity": 2
+            }
+          ]
+        }
+      ],
+      "response_body": {
+        "records_submitted": 1,
+        "records_processed": 1,
+        "records_failed": 0,
+        "records_succeeded": 1,
+        "results": [
+          {
+            "customer_identifier": "kit00001",
+            "status": "success",
+            "uri": "https://sandbox.masonhub.co/test/api/v1/skus?cid=kit00001"
+          }
+        ]
+      },
+      "response_code": 200,
+      "created_at": "2018-11-30T01:35:43.370703Z",
+      "request_id": "NRakdTYTIo-ZnozabOBxQ"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### 2. Queued Payload Processing
+
+Because all MasonHub API calls are non-blocking, the system splits array requests into individual queued payloads for processing. Each payload is processed individually with timing and results recorded:
+
+<AccordionGroup>
+  <Accordion title="Example: Individual SKU Processing Log">
+    ```json
+    {
+      "id": "798d67b0-ca41-4310-80c2-d760fa363ff8",
+      "account_id": "[account id]",
+      "json": {
+        "customer_identifier": "3342336657679876986",
+        "customer_bar_code": "324gjhfjkhgf2342",
+        "vendor_bar_code": "2342345dfghzsdf342",
+        "pick_style": "FIFO",
+        "brand_name": "peter piper",
+        "product_name": "McShirt",
+        "product_category": "shirt",
+        "product_sub_category": "man blouse",
+        "unit_cost": 5.95,
+        "price": 15.95,
+        "dim_weight": 10,
+        "dim_length": 2,
+        "dim_height": 12,
+        "inventory_totals": {
+          "total_units": 0,
+          "total_available_to_sell": 0
+        }
+      },
+      "created_at": "2018-11-21T21:29:56.922172Z",
+      "processed_at": "2018-11-21T21:29:57.841147Z",
+      "process_result": "success",
+      "process_messages": ["success messages"]
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+<Info>
+Processing times are tracked to identify performance bottlenecks and optimize system operations.
+</Info>
+
+### 3. Inventory Ledger Entries
+
+Every inventory change creates a ledger entry that references the action that triggered it:
+
+<AccordionGroup>
+  <Accordion title="Example: Inventory Ledger Entry">
+    ```json
+    {
+      "id": "ae973696-57f6-4dd7-b1c9-c9c0fd5c2dea",
+      "account_id": "[account id]",
+      "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+      "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      "reference_item_uri": "app.masonhub.co/[account_id]/payload/676954fa-d6b2-47ff-b20e-cefac216ac65",
+      "actor_uri": "data factory create available",
+      "entry_type": "expected",
+      "quantity": 100,
+      "occured_at": "2018-11-21T16:13:30.612314Z",
+      "created_at": "2018-11-21T16:13:30.652487Z"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+The `reference_item_uri` and `actor_uri` fields create the linkage that allows tracing any inventory change back to its source.
+</Note>
+
+### 4. Outbound Message Tracking
+
+MasonHub logs all outbound messages (callbacks/webhooks) sent to clients, including the full request and response:
+
+<AccordionGroup>
+  <Accordion title="Example: Callback Message Log">
+    ```json
+    {
+      "id": "e58769ec-c4cf-47f9-b80a-378a9b85aeae",
+      "account_id": "4f107138-28fc-cafd-a529-97e546a33239",
+      "message_type": "skuInventoryChange",
+      "outbound_url": "https://client.example.com/api/skuInventoryChange",
+      "response_headers": {
+        "content-type": "application/json",
+        "server": "nginx"
+      },
+      "response_body": {
+        "id": "39777d0e-1b15-4121-b403-a0a902263c07",
+        "created_at": "2018-11-18T00:43:32.340280Z",
+        "request_action": "skuInventoryChange",
+        "payload": {
+          "callback_url": "https://client.example.com/api/skuInventoryChange",
+          "message_type": "skuInventoryChange",
+          "message_id": "e58769ec-c4cf-47f9-b80a-378a9b85aeae",
+          "data": [
+            {
+              "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+              "customer_identifier": "10000",
+              "total_units": 200,
+              "total_available_to_sell": 100,
+              "as_of": "2018-11-18T00:43:23.095637Z"
+            }
+          ]
+        }
+      },
+      "response_code": 200,
+      "created_at": "2018-11-18T00:43:25.904553Z",
+      "processed_at": "2018-11-18T00:43:32.349294Z",
+      "process_result": "sent"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Universal Resource Identifiers (URI)
+
+All logged items are stored with URIs (Universal Resource Identifiers) that allow systems to tie arbitrary items together and trace actions back to their source.
+
+<CardGroup cols={2}>
+  <Card title="Complete Audit Trails" icon="list-check">
+    Every action can be traced to its origin
+  </Card>
+  <Card title="Debugging Capabilities" icon="bug">
+    Issues can be tracked through the entire system
+  </Card>
+  <Card title="Transparency" icon="eye">
+    Full visibility into system operations
+  </Card>
+  <Card title="Recoverability" icon="rotate-left">
+    Nothing gets lost in translation
+  </Card>
+  <Card title="Infinite Replay" icon="repeat">
+    Calculations and processes can be replayed from any point
+  </Card>
+  <Card title="Data Integrity" icon="shield-check">
+    Proof of accuracy and reliability
+  </Card>
+</CardGroup>
+
+## Benefits by Audience
+
+<Tabs>
+  <Tab title="Engineering Teams">
+    ### For MasonHub Engineering
+
+    <CardGroup cols={2}>
+      <Card title="Debugging" icon="magnifying-glass">
+        Quickly identify root causes of issues by tracing through the stack
+      </Card>
+      <Card title="Performance Optimization" icon="gauge-high">
+        Track bottlenecks through the system with timing data
+      </Card>
+      <Card title="Quality Assurance" icon="check-double">
+        Verify system behavior and data integrity
+      </Card>
+      <Card title="System Monitoring" icon="chart-line">
+        Real-time visibility into all operations
+      </Card>
+    </CardGroup>
+  </Tab>
+
+  <Tab title="MasonHub Clients">
+    ### For MasonHub Clients
+
+    <CardGroup cols={2}>
+      <Card title="Transparency" icon="eye">
+        Complete visibility into order and inventory processing
+      </Card>
+      <Card title="Audit Capability" icon="clipboard-list">
+        Full records for compliance and reporting requirements
+      </Card>
+      <Card title="Troubleshooting" icon="wrench">
+        Self-service debugging capabilities (future feature)
+      </Card>
+      <Card title="Confidence" icon="circle-check">
+        Proof that the system is accurate and reliable
+      </Card>
+    </CardGroup>
+  </Tab>
+
+  <Tab title="Operations Teams">
+    ### For Operations Teams
+
+    <CardGroup cols={2}>
+      <Card title="Order Tracking" icon="box">
+        Complete visibility into order processing
+      </Card>
+      <Card title="Inventory Accuracy" icon="warehouse">
+        Full audit trail for all inventory changes
+      </Card>
+      <Card title="Issue Resolution" icon="tools">
+        Fast problem identification and resolution
+      </Card>
+      <Card title="Process Improvement" icon="arrow-trend-up">
+        Data-driven operational enhancements
+      </Card>
+    </CardGroup>
+  </Tab>
+</Tabs>
+
+## Testing Infrastructure
+
+MasonHub maintains sophisticated testing infrastructure to validate the stack trace system:
+
+<CardGroup cols={2}>
+  <Card title="Mr. Bucket" icon="bucket">
+    **Smoke Test Service**
+
+    Receives all callback requests for inspection. Named because it "receives all requests for later inspection," Mr. Bucket responds with the original payload to verify system functionality.
+  </Card>
+  <Card title="Mrs. Shovel" icon="shovel">
+    **Load Testing Service**
+
+    Creates thousands of test records to validate system performance under stress and identify race conditions.
+  </Card>
+</CardGroup>
+
+## Technical Implementation
+
+The stack trace system is built into every level of the MasonHub OMS:
+
+<Steps>
+  <Step title="API Gateway">
+    Logs all inbound requests and responses with complete headers and payloads
+  </Step>
+  <Step title="Queue Processing">
+    Tracks individual payload processing with timing and results
+  </Step>
+  <Step title="Business Logic">
+    Records all state changes and decisions with URIs
+  </Step>
+  <Step title="External Communications">
+    Logs all outbound messages and responses
+  </Step>
+  <Step title="Data Storage">
+    Maintains complete historical records with relationships
+  </Step>
+</Steps>
+
+## Future Capabilities
+
+The stack trace foundation enables future features:
+
+<CardGroup cols={2}>
+  <Card title="Client Debugging Tools" icon="terminal">
+    Self-service troubleshooting capabilities for clients
+  </Card>
+  <Card title="Advanced Analytics" icon="chart-mixed">
+    Deep insights into operational patterns and trends
+  </Card>
+  <Card title="Predictive Capabilities" icon="crystal-ball">
+    Forecasting based on historical patterns
+  </Card>
+  <Card title="Automated Optimization" icon="wand-magic-sparkles">
+    System self-tuning based on performance data
+  </Card>
+</CardGroup>
+
+## Key Takeaways
+
+<Warning>
+**The stack trace is fundamental to MasonHub's value proposition**
+
+This comprehensive logging and tracing system ensures that MasonHub can deliver on its promise of accuracy, reliability, and transparency in supply chain management. Every operation is traceable, auditable, and recoverable.
+</Warning>
+
+<Info>
+For questions about the stack trace system or to access stack trace data for debugging, contact your MasonHub integration specialist.
+</Info>

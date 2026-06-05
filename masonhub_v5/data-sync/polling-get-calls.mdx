@@ -1,0 +1,290 @@
+---
+title: 'Polling via GET Calls'
+description: 'Retrieve data from MasonHub using periodic API polling'
+---
+
+One method for retrieving data from MasonHub is through periodic polling using GET API calls. This approach gives your ERP system control over when and how frequently to check for updates.
+
+## Overview
+
+Polling involves making scheduled GET requests to MasonHub's API endpoints to retrieve the latest information about orders, shipments, inventory, and other business data.
+
+<CardGroup cols={2}>
+  <Card
+    title="Advantages"
+    icon="thumbs-up"
+  >
+    - Full control over polling frequency
+    - Simpler implementation
+    - Better for batch processing
+    - No firewall configuration needed
+  </Card>
+  <Card
+    title="Considerations"
+    icon="info-circle"
+  >
+    - May not be real-time
+    - Higher API call volume
+    - Need to manage polling frequency
+    - Potential for missed updates
+  </Card>
+</CardGroup>
+
+## Common GET Endpoints
+
+### Order Data
+
+<Accordion title="Get Orders Endpoint">
+  **Endpoint**: `GET /orders`
+  
+  **Documentation**: [Get Orders API](https://docs.masonhub.co/api/v1#tag/Orders/paths/~1orders/get)
+  
+  **Use Cases:**
+  - Retrieve order status updates
+  - Check fulfillment progress
+  - Get order modification details
+  - Monitor order exceptions
+  
+  **Query Parameters:**
+  - `updated_since`: Get orders updated after a specific timestamp
+  - `status`: Filter by order status
+  - `limit`: Control response size
+  - `offset`: Handle pagination
+</Accordion>
+
+### Shipment Data
+
+<Accordion title="Get Shipments Endpoint">
+  **Endpoint**: `GET /shipments`
+  
+  **Documentation**: [Get Shipments API](https://docs.masonhub.co/api/v1#tag/Shipments/paths/~1shipments/get)
+  
+  **Use Cases:**
+  - Retrieve tracking numbers
+  - Get carrier information
+  - Monitor shipment status
+  - Check delivery confirmations
+  
+  **Key Data Retrieved:**
+  - Tracking numbers
+  - Carrier details
+  - Ship dates
+  - Delivery status
+  - Package dimensions and weight
+</Accordion>
+
+## Polling Implementation Patterns
+
+### Time-Based Polling
+
+Query for data updated since your last poll:
+
+```bash
+# Get orders updated in the last 5 minutes
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "https://api.masonhub.co/api/v1/orders?updated_since=2024-01-01T10:30:00Z"
+```
+
+### Status-Based Polling
+
+Focus on specific statuses that require action:
+
+```bash
+# Get orders that are ready to ship
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "https://api.masonhub.co/api/v1/orders?status=ready_to_ship"
+```
+
+### Pagination Handling
+
+Handle large datasets with pagination:
+
+```bash
+# First page
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "https://api.masonhub.co/api/v1/orders?limit=100&offset=0"
+
+# Subsequent pages
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "https://api.masonhub.co/api/v1/orders?limit=100&offset=100"
+```
+
+## Recommended Polling Frequencies
+
+<Tabs>
+  <Tab title="High Priority">
+    **Order Status Updates**
+    - Frequency: Every 2-5 minutes
+    - Use case: Critical order tracking
+    - Data: Order status changes, fulfillment updates
+  </Tab>
+  <Tab title="Medium Priority">
+    **Shipment Tracking**
+    - Frequency: Every 15-30 minutes
+    - Use case: Customer notifications
+    - Data: Tracking numbers, carrier updates
+  </Tab>
+  <Tab title="Low Priority">
+    **Inventory Snapshots**
+    - Frequency: Every 1-4 hours
+    - Use case: Inventory reconciliation
+    - Data: Stock levels, availability
+  </Tab>
+</Tabs>
+
+## Error Handling & Retry Logic
+
+### Rate Limiting
+
+<Warning>
+Respect API rate limits to avoid service interruption. Implement exponential backoff for retries.
+</Warning>
+
+```python
+import time
+import requests
+
+def poll_with_retry(url, headers, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, headers=headers)
+            
+            if response.status_code == 429:  # Rate limited
+                wait_time = 2 ** attempt  # Exponential backoff
+                time.sleep(wait_time)
+                continue
+                
+            return response
+            
+        except requests.exceptions.RequestException as e:
+            if attempt == max_retries - 1:
+                raise e
+            time.sleep(2 ** attempt)
+```
+
+### Data Consistency
+
+Implement mechanisms to ensure you don't miss data:
+
+<Steps>
+  <Step title="Track Last Poll Time">
+    Store the timestamp of your last successful poll
+  </Step>
+  <Step title="Use Updated Since Filter">
+    Query for data updated since your last poll
+  </Step>
+  <Step title="Handle Gaps">
+    If polling fails, extend the time window on the next attempt
+  </Step>
+  <Step title="Validate Data">
+    Check for missing data and implement catch-up mechanisms
+  </Step>
+</Steps>
+
+## Monitoring & Observability
+
+### Key Metrics to Track
+
+<CardGroup cols={2}>
+  <Card
+    title="API Performance"
+    icon="gauge"
+  >
+    - Response times
+    - Success rates
+    - Error rates
+    - Rate limit hits
+  </Card>
+  <Card
+    title="Data Quality"
+    icon="chart-line"
+  >
+    - Records processed
+    - Data freshness
+    - Missing data detection
+    - Duplicate handling
+  </Card>
+</CardGroup>
+
+### Logging Best Practices
+
+Log the following information for troubleshooting:
+
+```json
+{
+  "timestamp": "2024-01-01T10:30:00Z",
+  "endpoint": "/orders",
+  "query_params": {
+    "updated_since": "2024-01-01T10:25:00Z",
+    "limit": 100
+  },
+  "response_code": 200,
+  "records_returned": 15,
+  "processing_time_ms": 250
+}
+```
+
+## Integration Examples
+
+### Simple Polling Script
+
+```python
+import requests
+import time
+from datetime import datetime, timedelta
+
+class MasonHubPoller:
+    def __init__(self, api_token, base_url):
+        self.headers = {
+            'Authorization': f'Bearer {api_token}',
+            'Content-Type': 'application/json'
+        }
+        self.base_url = base_url
+        
+    def poll_orders(self, last_poll_time):
+        url = f"{self.base_url}/orders"
+        params = {
+            'updated_since': last_poll_time.isoformat(),
+            'limit': 100
+        }
+        
+        response = requests.get(url, headers=self.headers, params=params)
+        response.raise_for_status()
+        
+        return response.json()
+```
+
+### Batch Processing
+
+```python
+def process_order_updates():
+    poller = MasonHubPoller(api_token, base_url)
+    last_poll = get_last_poll_time()  # From your database
+    
+    orders = poller.poll_orders(last_poll)
+    
+    for order in orders.get('data', []):
+        update_erp_order(order)
+        
+    save_last_poll_time(datetime.utcnow())
+```
+
+## Performance Optimization
+
+### Reduce API Calls
+
+<Accordion title="Batch Operations">
+  - Request multiple records per call using pagination
+  - Use appropriate date ranges to avoid empty responses
+  - Combine related data requests when possible
+</Accordion>
+
+<Accordion title="Smart Filtering">
+  - Use status filters to get only relevant data
+  - Implement delta sync for large datasets
+  - Cache frequently accessed reference data
+</Accordion>
+
+## Next Steps
+
+Consider implementing [callback events (webhooks)](/data-sync/callback-events) for real-time updates on critical data, while using polling for less time-sensitive information.

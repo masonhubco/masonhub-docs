@@ -1,0 +1,313 @@
+---
+title: "Account Setup & Configuration"
+description: "Complete guide to setting up and configuring your MasonHub account"
+sidebarTitle: "Account Setup"
+---
+
+This guide walks you through the complete account setup process for MasonHub, from initial configuration to advanced settings.
+
+## Initial Setup
+
+<Steps>
+  <Step title="Account Creation">
+    ### Register Your Account
+
+    Contact the MasonHub team to create your account. You'll need to provide:
+    - Company name and details
+    - Primary contact information
+    - Business type (B2B, B2C, or hybrid)
+    - Expected order volume
+  </Step>
+
+  <Step title="Login Credentials">
+    ### Access Your Account
+
+    Once your account is created, you'll receive:
+    - **Account name** (your unique identifier)
+    - **Temporary password** (change on first login)
+    - **Portal URL** for access
+
+    <Warning>
+      Change your temporary password immediately upon first login for security.
+    </Warning>
+  </Step>
+
+  <Step title="Company Profile">
+    ### Configure Basic Information
+
+    Complete your company profile with:
+    - Business address
+    - Tax identification
+    - Billing information
+    - Brand assets (logos, colors)
+  </Step>
+</Steps>
+
+## User Management
+
+### Adding Team Members
+
+Control who has access to your MasonHub account and what they can do.
+
+<Tabs>
+  <Tab title="Add Users">
+    **To add a new user:**
+
+    1. Navigate to **Settings** → **User Management**
+    2. Click **Add User**
+    3. Enter user details:
+       - Full name
+       - Email address
+       - Role assignment
+       - Department (optional)
+    4. Set initial permissions
+    5. Send invitation
+
+    <Note>
+      New users will receive an email invitation with login instructions.
+    </Note>
+  </Tab>
+
+  <Tab title="User Roles">
+    **Available roles and permissions:**
+
+    | Role | Permissions |
+    |------|------------|
+    | **Admin** | Full system access, user management, billing |
+    | **Manager** | Order management, reporting, inventory |
+    | **Fulfillment** | Order processing, shipping, warehouse ops |
+    | **Customer Service** | Order viewing, tracking, customer notes |
+    | **Finance** | Billing, invoices, financial reports |
+    | **Read-Only** | View access only, no modifications |
+  </Tab>
+
+  <Tab title="Remove Users">
+    **To remove or deactivate a user:**
+
+    1. Go to **Settings** → **User Management**
+    2. Find the user in the list
+    3. Click the **Actions** menu
+    4. Select **Deactivate** (preserves history) or **Delete** (permanent)
+
+    <Warning>
+      Deleting a user is permanent. Consider deactivating instead to maintain audit trails.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Integration Setup
+
+### Connect Your E-commerce Platform
+
+<CardGroup cols={2}>
+  <Card title="Shopify" icon="shopify">
+    **Connect Multiple Stores**
+
+    Link one or more Shopify stores to your MasonHub account for unified management.
+
+    [Shopify Setup Guide →](/help-center/shopify-integration)
+  </Card>
+
+  <Card title="Custom API" icon="code">
+    **API Integration**
+
+    Use our RESTful API for custom integrations with any platform.
+
+    [API Documentation →](/api-reference)
+  </Card>
+
+  <Card title="EDI" icon="exchange">
+    **EDI Connections**
+
+    Set up Electronic Data Interchange for enterprise retail partners.
+
+    [EDI Setup →](/help-center/edi-setup)
+  </Card>
+
+  <Card title="Marketplace" icon="store">
+    **Marketplace Channels**
+
+    Connect Amazon, Walmart, and other marketplace accounts.
+
+    [Marketplace Guide →](/help-center/marketplaces)
+  </Card>
+</CardGroup>
+
+## Notification Preferences
+
+### Email Notifications
+
+Configure which notifications you and your team receive:
+
+<AccordionGroup>
+  <Accordion title="Order Notifications" icon="box">
+    - New order confirmations
+    - Order status changes
+    - Cancellation alerts
+    - Hold notifications
+  </Accordion>
+
+  <Accordion title="Inventory Alerts" icon="warehouse">
+    - Low stock warnings
+    - Out of stock alerts
+    - Reorder point notifications
+    - Inbound shipment updates
+  </Accordion>
+
+  <Accordion title="System Updates" icon="bell">
+    - Maintenance schedules
+    - New feature announcements
+    - Integration status changes
+    - Error notifications
+  </Accordion>
+</AccordionGroup>
+
+**To manage notifications:**
+
+1. Go to **Settings** → **Notifications**
+2. Select notification types for each user
+3. Choose delivery method (email, SMS, in-app)
+4. Set frequency (immediate, daily digest, weekly)
+
+## Warehouse Configuration
+
+### Set Up Your Fulfillment Network
+
+<Info>
+  MasonHub operates multiple fulfillment centers. Work with your account manager to determine the best configuration for your needs.
+</Info>
+
+**Configuration options include:**
+
+- **Primary warehouse** selection
+- **Multi-warehouse** routing rules
+- **Regional preferences** for faster delivery
+- **International fulfillment** options
+
+## Billing Setup
+
+### Payment Methods & Invoicing
+
+<Steps>
+  <Step title="Payment Method">
+    Add your preferred payment method:
+    - Credit card (automatic billing)
+    - ACH transfer (lower fees)
+    - Net terms (upon approval)
+  </Step>
+
+  <Step title="Billing Address">
+    Ensure your billing address is accurate for invoicing:
+    - Legal company name
+    - Tax ID number
+    - Billing contact email
+  </Step>
+
+  <Step title="Invoice Preferences">
+    Configure how you receive invoices:
+    - Frequency (monthly, bi-weekly)
+    - Format (PDF, CSV, Excel)
+    - Recipients (multiple emails supported)
+  </Step>
+</Steps>
+
+## Security Settings
+
+### Protect Your Account
+
+<Tabs>
+  <Tab title="Password Policy">
+    **Strong password requirements:**
+    - Minimum 12 characters
+    - Mix of upper/lowercase letters
+    - Include numbers and symbols
+    - Change every 90 days
+    - No password reuse for 12 cycles
+  </Tab>
+
+  <Tab title="Two-Factor Auth">
+    **Enable 2FA for enhanced security:**
+
+    1. Go to **Account** → **Security**
+    2. Click **Enable 2FA**
+    3. Choose method:
+       - SMS verification
+       - Authenticator app
+       - Email backup codes
+    4. Complete verification
+    5. Save backup codes securely
+  </Tab>
+
+  <Tab title="IP Restrictions">
+    **Limit access by IP address:**
+
+    Restrict account access to specific IP addresses or ranges for added security.
+
+    Contact support to configure IP allowlisting.
+  </Tab>
+</Tabs>
+
+## Advanced Configuration
+
+### Custom Settings
+
+<AccordionGroup>
+  <Accordion title="Branding & Customization" icon="palette">
+    Customize your customer experience:
+    - Packing slip templates
+    - Branded tracking pages
+    - Custom email templates
+    - Return portal branding
+  </Accordion>
+
+  <Accordion title="Business Rules" icon="gavel">
+    Configure automated business logic:
+    - Order routing rules
+    - Fraud detection settings
+    - Hold conditions
+    - Auto-cancellation rules
+  </Accordion>
+
+  <Accordion title="API Configuration" icon="plug">
+    Set up API access:
+    - Generate API keys
+    - Configure webhooks
+    - Set rate limits
+    - Monitor usage
+  </Accordion>
+</AccordionGroup>
+
+## Verification Checklist
+
+Before going live, ensure you've completed:
+
+<Check>
+  ✓ Company profile information
+  ✓ User accounts created
+  ✓ Integration configured
+  ✓ Notification preferences set
+  ✓ Billing method added
+  ✓ Security settings enabled
+  ✓ Test order processed successfully
+</Check>
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="Support Documentation" icon="book" href="https://support.masonhub.co">
+    Access detailed guides and FAQs
+  </Card>
+  <Card title="Contact Support" icon="headset" href="mailto:support@masonhub.co">
+    Reach our support team directly
+  </Card>
+</CardGroup>
+
+---
+
+<Tip>
+  **Pro Tip:** Schedule a walkthrough with your account manager after initial setup to ensure everything is configured optimally for your business needs.
+</Tip>
+
+## Sources:
+- [MasonHub Login – MasonHub](https://support.masonhub.co/hc/en-us/articles/360054561712-MasonHub-Login)
+- [Getting Started – MasonHub](https://support.masonhub.co/hc/en-us/categories/360002659171-Getting-Started)

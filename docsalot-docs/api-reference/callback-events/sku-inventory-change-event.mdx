@@ -1,0 +1,248 @@
+---
+title: 'SKU Inventory Change Event'
+description: 'Webhook event sent when inventory levels change for SKUs across any location or status'
+---
+
+The SKU Inventory Change event is sent to your registered webhook endpoint whenever inventory levels change for any SKU. This provides real-time visibility into inventory movements across all locations and statuses.
+
+<Note>
+Use the `message_id` field to implement idempotent processing and prevent duplicate event handling.
+</Note>
+
+## Event Payload
+
+```json
+{
+  "callback_url": "https://client.com/api/skuInventoryChange",
+  "message_type": "skuInventoryChange",
+  "message_id": "e58769ec-c4cf-47f9-b80a-378a9b85aeae",
+  "data": [
+    {
+      "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      "customer_identifier": "10000",
+      "total_units": 200,
+      "total_available_to_sell": 100,
+      "as_of": "2018-11-18T00:43:23.095637Z",
+      "status_counts": [
+        {
+          "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+          "inventory_location_address": "MasonHub - Rancho Cucamonga | 8595 Milliken Avenue, B102 Rancho Cucamonga, CA 91730",
+          "inventory_status": "available",
+          "quantity": 100,
+          "as_of": "2018-11-18T00:43:22.664965Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Payload Fields
+
+<ResponseField name="callback_url" type="string">
+  Your registered webhook endpoint URL
+</ResponseField>
+
+<ResponseField name="message_type" type="string">
+  Always `skuInventoryChange` for this event type
+</ResponseField>
+
+<ResponseField name="message_id" type="string">
+  Unique identifier for this event. Use for idempotency checks.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of inventory change records. Each record contains:
+
+  <Expandable title="SKU Inventory Data">
+    <ResponseField name="sku_id" type="string">
+      MasonHub internal UUID for the SKU
+    </ResponseField>
+
+    <ResponseField name="customer_identifier" type="string">
+      Your SKU identifier
+    </ResponseField>
+
+    <ResponseField name="total_units" type="integer">
+      Total quantity across all statuses and locations
+    </ResponseField>
+
+    <ResponseField name="total_available_to_sell" type="integer">
+      Quantity available for sale (excludes allocated, damaged, etc.)
+    </ResponseField>
+
+    <ResponseField name="as_of" type="string">
+      Timestamp of the inventory snapshot (RFC3339)
+    </ResponseField>
+
+    <ResponseField name="status_counts" type="array">
+      Breakdown by location and status
+
+      <Expandable title="Status Count Details">
+        <ResponseField name="inventory_location_id" type="string">
+          MasonHub location UUID
+        </ResponseField>
+
+        <ResponseField name="inventory_location_address" type="string">
+          Human-readable location address
+        </ResponseField>
+
+        <ResponseField name="inventory_status" type="string">
+          Status: `available`, `allocated`, `damaged`, `quality-control`, etc.
+        </ResponseField>
+
+        <ResponseField name="quantity" type="integer">
+          Quantity in this status at this location
+        </ResponseField>
+
+        <ResponseField name="as_of" type="string">
+          Timestamp for this status count (RFC3339)
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Event Triggers
+
+This event is triggered by various inventory operations:
+
+<CardGroup cols={2}>
+  <Card title="Inbound Receipts" icon="box-open">
+    Inventory received from inbound shipments
+  </Card>
+  <Card title="Order Fulfillment" icon="truck">
+    Inventory allocated or shipped for orders
+  </Card>
+  <Card title="Adjustments" icon="pen-to-square">
+    Manual inventory adjustments and corrections
+  </Card>
+  <Card title="Returns Processing" icon="rotate-left">
+    Items returned and restocked
+  </Card>
+  <Card title="Kit Operations" icon="boxes-stacked">
+    Kit assembly or disassembly operations
+  </Card>
+  <Card title="Status Changes" icon="arrows-turn-to-dots">
+    Inventory moved between statuses (e.g., QC to available)
+  </Card>
+</CardGroup>
+
+## Implementation Example
+
+```python Python
+@app.route('/api/skuInventoryChange', methods=['POST'])
+def handle_inventory_change():
+    try:
+        payload = request.get_json()
+        message_id = payload['message_id']
+
+        # Check if already processed (idempotency)
+        if is_message_processed(message_id):
+            return 'OK', 200
+
+        # Process each SKU update
+        for item in payload['data']:
+            sku_id = item['customer_identifier']
+            available = item['total_available_to_sell']
+
+            # Update your inventory system
+            update_inventory(sku_id, available)
+
+            # Update by location if needed
+            for status in item['status_counts']:
+                location = status['inventory_location_id']
+                quantity = status['quantity']
+                status_type = status['inventory_status']
+
+                update_inventory_detail(sku_id, location, status_type, quantity)
+
+        # Mark as processed
+        mark_message_processed(message_id)
+
+        return 'OK', 200
+
+    except Exception as e:
+        logger.error(f"Inventory webhook error: {e}")
+        return 'Error', 500
+```
+
+```javascript JavaScript
+app.post('/api/skuInventoryChange', async (req, res) => {
+  try {
+    const payload = req.body;
+    const messageId = payload.message_id;
+
+    // Check if already processed (idempotency)
+    if (await isMessageProcessed(messageId)) {
+      return res.status(200).send('OK');
+    }
+
+    // Process each SKU update
+    for (const item of payload.data) {
+      const skuId = item.customer_identifier;
+      const available = item.total_available_to_sell;
+
+      // Update your inventory system
+      await updateInventory(skuId, available);
+
+      // Update by location if needed
+      for (const status of item.status_counts) {
+        await updateInventoryDetail(
+          skuId,
+          status.inventory_location_id,
+          status.inventory_status,
+          status.quantity
+        );
+      }
+    }
+
+    // Mark as processed
+    await markMessageProcessed(messageId);
+
+    res.status(200).send('OK');
+
+  } catch (error) {
+    console.error('Inventory webhook error:', error);
+    res.status(500).send('Error');
+  }
+});
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Idempotency" icon="shield-check">
+    Always check `message_id` to prevent duplicate processing
+  </Card>
+  <Card title="Fast Response" icon="bolt">
+    Return 200 OK quickly, queue heavy processing for background jobs
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation">
+    Return appropriate HTTP status codes for MasonHub retry logic
+  </Card>
+  <Card title="Logging" icon="file-lines">
+    Log all events with message_id for debugging and audit trails
+  </Card>
+</CardGroup>
+
+<Warning>
+High-velocity SKUs may generate frequent events. Implement efficient processing and consider batching database updates.
+</Warning>
+
+## Response Requirements
+
+Your webhook endpoint must:
+
+1. **Respond within 30 seconds** - Return HTTP 200 to acknowledge receipt
+2. **Use proper status codes**:
+   - `200` - Event processed successfully
+   - `500` - Processing error (MasonHub will retry)
+3. **Handle retries** - MasonHub will retry failed webhooks with exponential backoff
+4. **Validate payload** - Verify the payload structure before processing
+
+## Related Events
+
+- [Order Events](/api-reference/callback-events/order-events) - Includes inventory allocation information
+- [Inbound Shipment Events](/api-reference/callback-events/inbound-shipment-events) - Triggers inventory changes on receipt
+- [Snapshot Ready](/api-reference/callback-events/snapshot-ready) - Full inventory snapshots for reconciliation

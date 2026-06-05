@@ -1,0 +1,659 @@
+---
+title: 'API Design Philosophy'
+description: 'Understanding the core principles and patterns that guide MasonHub API design'
+icon: 'lightbulb'
+---
+
+The MasonHub API is built on consistent design principles that make it predictable, composable, and efficient. Understanding these patterns will help you integrate more effectively.
+
+<Note>
+These design principles apply across all MasonHub API endpoints, ensuring a consistent developer experience.
+</Note>
+
+## Core Principles
+
+<CardGroup cols={2}>
+  <Card title="Search-First Design" icon="magnifying-glass">
+    Everything is built around flexible search patterns rather than rigid resource URLs
+  </Card>
+  <Card title="Always Arrays" icon="layer-group">
+    Batch operations by default - all methods work with arrays
+  </Card>
+  <Card title="Detail Control" icon="sliders">
+    Choose between summary and detailed responses for optimal performance
+  </Card>
+  <Card title="Simplified REST" icon="code">
+    Standard HTTP methods without the complexity of PATCH operations
+  </Card>
+</CardGroup>
+
+---
+
+## Everything is Really Just Search
+
+<Icon icon="magnifying-glass-chart" iconType="solid" size={32} />
+
+GET methods use search parameters instead of traditional resource URLs. This provides flexibility and composability in how you query data.
+
+### Traditional REST vs MasonHub Approach
+
+<CodeGroup>
+```bash Traditional REST
+# Single resource by ID
+GET /orders/123121
+
+# Multiple resources - need multiple requests
+GET /orders/123121
+GET /orders/456789
+GET /orders/789012
+```
+
+```bash MasonHub Search-First
+# Single or multiple resources in one request
+GET /orders?id=123121
+
+# Batch query - same endpoint
+GET /orders?id=123121,456789,789012
+
+# Flexible filtering
+GET /orders?status=fulfilled&sdt=2024-01-01T00:00:00Z
+```
+</CodeGroup>
+
+### Benefits
+
+<AccordionGroup>
+  <Accordion title="Composable Queries" icon="puzzle-piece">
+    Mix and match search parameters to build exactly the query you need without learning multiple endpoint patterns.
+
+    ```bash
+    GET /orders?status=fulfilled&coid=12345,67890&sdt=2024-01-01T00:00:00Z
+    ```
+  </Accordion>
+
+  <Accordion title="Efficient Batch Operations" icon="bolt">
+    Retrieve multiple resources in a single API call, reducing round trips and improving performance.
+
+    ```bash
+    # Get multiple SKUs at once
+    GET /skus?cid=shirt-001,shirt-002,pants-003
+    ```
+  </Accordion>
+
+  <Accordion title="Consistent Patterns" icon="clone">
+    All GET endpoints work the same way - learn once, apply everywhere.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Always an Array
+
+<Icon icon="layer-group" iconType="solid" size={32} />
+
+All HTTP methods (GET, POST, PUT, DELETE) accept or return arrays. This enables efficient bulk processing and consistent patterns across all operations.
+
+### Request Patterns
+
+<Tabs>
+  <Tab title="GET - Retrieve">
+    ```json Response Always Array
+    {
+      "limit": 30,
+      "offset": 0,
+      "data": [
+        { "id": "order-1", "status": "fulfilled" },
+        { "id": "order-2", "status": "shipped" }
+      ]
+    }
+    ```
+  </Tab>
+
+  <Tab title="POST - Create">
+    ```json Create Multiple SKUs
+    [
+      {
+        "customer_identifier": "SKU-001",
+        "product_name": "Blue Shirt",
+        "price": 29.99
+      },
+      {
+        "customer_identifier": "SKU-002",
+        "product_name": "Black Pants",
+        "price": 49.99
+      }
+    ]
+    ```
+  </Tab>
+
+  <Tab title="PUT - Update">
+    ```json Update Multiple Orders
+    [
+      {
+        "customer_identifier": "order-123",
+        "shipping_address": { /* new address */ }
+      },
+      {
+        "customer_identifier": "order-456",
+        "line_items": [ /* updated items */ ]
+      }
+    ]
+    ```
+  </Tab>
+
+  <Tab title="DELETE - Remove">
+    ```json Cancel Multiple Orders
+    [
+      { "customer_identifier": "order-123" },
+      { "customer_identifier": "order-456" }
+    ]
+    ```
+  </Tab>
+</Tabs>
+
+### Why Arrays Matter
+
+<CardGroup cols={2}>
+  <Card title="Reduced API Calls" icon="arrows-minimize">
+    Process 100 items in one request instead of 100 separate calls
+  </Card>
+  <Card title="Improved Performance" icon="gauge-high">
+    Lower latency and reduced overhead for bulk operations
+  </Card>
+  <Card title="Atomic Batches" icon="shield-check">
+    All items in a batch are processed together with consistent error handling
+  </Card>
+  <Card title="Simplified Code" icon="code-simple">
+    Write once for single or multiple items - no special cases
+  </Card>
+</CardGroup>
+
+---
+
+## Summary vs Detail
+
+<Icon icon="sliders" iconType="solid" size={32} />
+
+Control the level of information returned using the `list_type` parameter. This allows you to optimize API responses for your specific use case.
+
+### List Type Options
+
+<CodeGroup>
+```bash Summary View
+GET /skus?list_type=summary
+
+# Returns condensed information
+{
+  "data": [
+    {
+      "id": "uuid-123",
+      "customer_identifier": "SKU-001",
+      "product_name": "Blue Shirt",
+      "available_quantity": 150
+    }
+  ]
+}
+```
+
+```bash Detail View
+GET /skus?list_type=detail
+
+# Returns full information
+{
+  "data": [
+    {
+      "id": "uuid-123",
+      "customer_identifier": "SKU-001",
+      "product_name": "Blue Shirt",
+      "product_description": "Premium cotton blue shirt...",
+      "brand_name": "FashionCo",
+      "vendor_style": "BLS-2024",
+      "dim_weight": 0.75,
+      "dim_length": 12,
+      "dim_width": 8,
+      "dim_height": 2,
+      "bar_codes": ["123456789012"],
+      "available_quantity": 150,
+      "allocated_quantity": 25,
+      // ... all fields
+    }
+  ]
+}
+```
+</CodeGroup>
+
+### When to Use Each Type
+
+<CardGroup cols={2}>
+  <Card title="Use Summary" icon="list">
+    **Best for:**
+    - Building dropdown/selection UIs
+    - Displaying lists and tables
+    - Dashboard overviews
+    - Quick reference lookups
+    - High-volume queries
+  </Card>
+
+  <Card title="Use Detail" icon="magnifying-glass-plus">
+    **Best for:**
+    - Complete record display
+    - Data exports
+    - Detailed analysis
+    - Record updates
+    - Full data synchronization
+  </Card>
+</CardGroup>
+
+<Tip>
+Start with `summary` for better performance. Only request `detail` when you actually need all the fields.
+</Tip>
+
+---
+
+## GET, POST, PUT, DELETE, No Patch
+
+<Icon icon="code" iconType="solid" size={32} />
+
+The MasonHub API follows a simplified REST approach using only the four primary HTTP methods.
+
+### Method Overview
+
+<AccordionGroup>
+  <Accordion title="GET - Retrieve Resources" icon="download">
+    Query resources using flexible search parameters.
+
+    **Characteristics:**
+    - Search-based filtering
+    - Supports batch retrieval
+    - Pagination support
+    - Detail level control
+
+    ```bash
+    GET /orders?status=fulfilled&limit=50&offset=0
+    ```
+  </Accordion>
+
+  <Accordion title="POST - Create Resources" icon="plus">
+    Create new resources. Submit single or multiple records.
+
+    **Characteristics:**
+    - Accepts array of objects
+    - Returns creation status for each
+    - Validates all records before processing
+
+    ```bash
+    POST /orders
+    Content-Type: application/json
+
+    [
+      { "customer_identifier": "order-123", /* ... */ }
+    ]
+    ```
+  </Accordion>
+
+  <Accordion title="PUT - Update Resources" icon="pen-to-square">
+    Update existing resources with **full replacement**.
+
+    **Characteristics:**
+    - Complete object replacement (not partial)
+    - Must include all required fields
+    - Processes asynchronously
+    - Confirmation via callback events
+
+    ```bash
+    PUT /orders
+    Content-Type: application/json
+
+    [
+      {
+        "customer_identifier": "order-123",
+        // All fields required, not just changed ones
+      }
+    ]
+    ```
+
+    <Warning>
+    PUT requires full object replacement. All required fields must be included, not just the fields you want to change.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="DELETE - Remove Resources" icon="trash">
+    Delete or cancel resources.
+
+    **Characteristics:**
+    - Supports batch deletion
+    - May be asynchronous (e.g., order cancellation)
+    - Returns status for each item
+
+    ```bash
+    DELETE /orders
+    Content-Type: application/json
+
+    [
+      { "customer_identifier": "order-123" },
+      { "customer_identifier": "order-456" }
+    ]
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Why No PATCH?
+
+<CardGroup cols={2}>
+  <Card title="Simplicity" icon="circle-check">
+    Fewer HTTP methods means simpler, more predictable API
+  </Card>
+  <Card title="Clarity" icon="eye">
+    Full replacement makes state changes explicit and unambiguous
+  </Card>
+  <Card title="Consistency" icon="clone">
+    Same update pattern across all resources
+  </Card>
+  <Card title="Safety" icon="shield-halved">
+    Reduces risk of unexpected partial updates or state conflicts
+  </Card>
+</CardGroup>
+
+---
+
+## Error Handling
+
+<Icon icon="triangle-exclamation" iconType="solid" size={32} />
+
+Bulk operations return HTTP 200 with individual success/failure status for each item. This allows partial success in batch operations.
+
+### Batch Response Structure
+
+```json
+{
+  "records_submitted": 3,
+  "records_processed": 3,
+  "records_failed": 1,
+  "records_succeeded": 2,
+  "results": [
+    {
+      "customer_identifier": "item1",
+      "status": "success"
+    },
+    {
+      "customer_identifier": "item2",
+      "status": "failure",
+      "reason": "Validation error: Invalid SKU identifier"
+    },
+    {
+      "customer_identifier": "item3",
+      "status": "success"
+    }
+  ]
+}
+```
+
+### Error Handling Best Practices
+
+<Steps>
+  <Step title="Check Overall Status">
+    Look at `records_failed` to determine if any items failed
+  </Step>
+
+  <Step title="Iterate Results">
+    Check each item's `status` field individually
+  </Step>
+
+  <Step title="Handle Failures">
+    Log and retry failed items with corrected data
+  </Step>
+
+  <Step title="Continue Processing">
+    Successful items are processed even if some fail
+  </Step>
+</Steps>
+
+### Common Error Reasons
+
+<Tabs>
+  <Tab title="Validation Errors">
+    ```json
+    {
+      "status": "failure",
+      "reason": "Validation error: Missing required field 'product_name'"
+    }
+    ```
+    **Action:** Fix the data and resubmit
+  </Tab>
+
+  <Tab title="Resource Not Found">
+    ```json
+    {
+      "status": "failure",
+      "reason": "Order not found"
+    }
+    ```
+    **Action:** Verify the identifier is correct
+  </Tab>
+
+  <Tab title="Business Logic">
+    ```json
+    {
+      "status": "failure",
+      "reason": "Order already packed"
+    }
+    ```
+    **Action:** Operation not allowed - handle via alternative flow
+  </Tab>
+
+  <Tab title="Insufficient Inventory">
+    ```json
+    {
+      "status": "failure",
+      "reason": "Insufficient inventory for SKU-123"
+    }
+    ```
+    **Action:** Adjust quantity or wait for inventory
+  </Tab>
+</Tabs>
+
+<Warning>
+Always check individual item status in batch operations. HTTP 200 doesn't guarantee all items succeeded.
+</Warning>
+
+---
+
+## Date Time Format
+
+<Icon icon="calendar-clock" iconType="solid" size={32} />
+
+All date/time values conform to the **RFC3339** standard format for consistency across all API endpoints.
+
+### RFC3339 Format
+
+<CodeGroup>
+```text Standard Format
+2018-08-05T17:32:28Z
+
+Components:
+- Date: 2018-08-05
+- Time: 17:32:28
+- Timezone: Z (UTC)
+```
+
+```text With Milliseconds
+2018-12-11T15:53:23.095637Z
+
+Components:
+- Date: 2018-12-11
+- Time: 15:53:23.095637
+- Timezone: Z (UTC)
+```
+</CodeGroup>
+
+### Working with Timestamps
+
+<Tabs>
+  <Tab title="JavaScript">
+    ```javascript
+    // Current timestamp
+    const now = new Date().toISOString();
+    // "2024-01-15T10:30:00.000Z"
+
+    // Parse RFC3339
+    const date = new Date("2018-08-05T17:32:28Z");
+
+    // Custom timestamp
+    const timestamp = new Date("2024-01-01T00:00:00Z").toISOString();
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    from datetime import datetime, timezone
+
+    # Current timestamp
+    now = datetime.now(timezone.utc).isoformat()
+    # "2024-01-15T10:30:00+00:00"
+
+    # Parse RFC3339
+    date = datetime.fromisoformat("2018-08-05T17:32:28Z")
+
+    # Custom timestamp
+    timestamp = datetime(2024, 1, 1, tzinfo=timezone.utc).isoformat()
+    ```
+  </Tab>
+
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+        "time"
+    )
+
+    // Current timestamp
+    now := time.Now().UTC().Format(time.RFC3339)
+    // "2024-01-15T10:30:00Z"
+
+    // Parse RFC3339
+    date, _ := time.Parse(time.RFC3339, "2018-08-05T17:32:28Z")
+
+    // Custom timestamp
+    timestamp := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
+    ```
+  </Tab>
+
+  <Tab title="Java">
+    ```java
+    import java.time.Instant;
+    import java.time.ZonedDateTime;
+    import java.time.format.DateTimeFormatter;
+
+    // Current timestamp
+    String now = Instant.now().toString();
+    // "2024-01-15T10:30:00Z"
+
+    // Parse RFC3339
+    Instant date = Instant.parse("2018-08-05T17:32:28Z");
+
+    // Custom timestamp
+    String timestamp = ZonedDateTime.parse("2024-01-01T00:00:00Z")
+        .format(DateTimeFormatter.ISO_INSTANT);
+    ```
+  </Tab>
+</Tabs>
+
+### Common Date Filters
+
+```bash
+# Orders created after specific date
+GET /orders?sdt=2024-01-01T00:00:00Z
+
+# Orders in date range
+GET /orders?sdt=2024-01-01T00:00:00Z&edt=2024-01-31T23:59:59Z
+
+# Shipments from last 24 hours
+GET /shipments?sdt=2024-01-14T10:30:00Z
+```
+
+<Tip>
+Always use UTC timezone (Z suffix) for API requests to avoid timezone conversion issues.
+</Tip>
+
+---
+
+## Practical Examples
+
+### Building an Integration
+
+Here's how these principles work together in a real integration:
+
+<Steps>
+  <Step title="Query Fulfilled Orders">
+    Use search-first with date filters
+
+    ```bash
+    GET /orders?status=fulfilled&sdt=2024-01-01T00:00:00Z&list_type=summary
+    ```
+  </Step>
+
+  <Step title="Get Detailed Order Info">
+    Use batch retrieval with detail view
+
+    ```bash
+    GET /orders?id=order-1,order-2,order-3&list_type=detail
+    ```
+  </Step>
+
+  <Step title="Update Multiple Addresses">
+    Full object replacement with PUT
+
+    ```bash
+    PUT /orders
+    [
+      { "customer_identifier": "order-1", /* complete order object */ },
+      { "customer_identifier": "order-2", /* complete order object */ }
+    ]
+    ```
+  </Step>
+
+  <Step title="Handle Partial Success">
+    Check individual results
+
+    ```json
+    {
+      "records_succeeded": 1,
+      "records_failed": 1,
+      "results": [
+        { "customer_identifier": "order-1", "status": "success" },
+        { "customer_identifier": "order-2", "status": "failure", "reason": "Order already packed" }
+      ]
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Summary
+
+<CardGroup cols={3}>
+  <Card title="Search Everything" icon="magnifying-glass">
+    Flexible query parameters instead of rigid URLs
+  </Card>
+  <Card title="Batch by Default" icon="layer-group">
+    Arrays everywhere for efficient bulk operations
+  </Card>
+  <Card title="Control Detail" icon="toggle-on">
+    Choose summary or detail based on your needs
+  </Card>
+  <Card title="Simple REST" icon="code">
+    GET, POST, PUT, DELETE - no PATCH complexity
+  </Card>
+  <Card title="Graceful Errors" icon="shield-check">
+    Partial success with individual item status
+  </Card>
+  <Card title="Standard Times" icon="clock">
+    RFC3339 timestamps for consistency
+  </Card>
+</CardGroup>
+
+<Note>
+These patterns apply consistently across all MasonHub API endpoints. Master them once, and you'll be productive across the entire API surface.
+</Note>

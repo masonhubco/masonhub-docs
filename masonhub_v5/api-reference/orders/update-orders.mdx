@@ -1,0 +1,363 @@
+---
+title: 'Update Orders'
+description: 'Submit asynchronous order update requests'
+api: 'POST /order_update_requests'
+---
+
+Update existing orders asynchronously by submitting complete order objects. The system performs full replacement of order data and processes updates in the background.
+
+<Warning>
+**Full Replacement**: You must send the complete order object in each update request. The system replaces all order data with what you provide. We use POST instead of PATCH to keep integrations simple.
+</Warning>
+
+## Request Body
+
+The request body accepts an array of complete order objects with the same schema as the [Create Orders](/api-reference/orders/create-orders) endpoint.
+
+### Required Fields
+
+All fields from order creation are supported. The `customer_identifier` is used to locate the existing order to update.
+
+<ParamField body="customer_identifier" type="string" required>
+  Your unique order identifier. Used to locate the existing order.
+</ParamField>
+
+<ParamField body="order_type" type="string" required>
+  Order type classification.
+</ParamField>
+
+<ParamField body="shipping_provider" type="string" required>
+  Shipping carrier name.
+</ParamField>
+
+<ParamField body="shipper_service_level" type="string" required>
+  Carrier service level.
+</ParamField>
+
+<ParamField body="submitted_at" type="string" required>
+  Original order submission timestamp (RFC3339).
+</ParamField>
+
+<ParamField body="line_items" type="array" required>
+  Complete array of line items (replaces existing items).
+</ParamField>
+
+### Address Fields (Required)
+
+Include complete shipping and billing address objects with all required fields as specified in Create Orders.
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/order_update_requests" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "129374",
+      "order_type": "customer",
+      "priority": 150,
+      "shipping_provider": "masonhub",
+      "shipper_service_level": "express",
+      "shipping_address_name": "John Jacob JingleHeimer-Schmidt III",
+      "shipping_address_street_line_one": "234 House Lane",
+      "shipping_address_city": "Little Falls",
+      "shipping_address_locale": "NJ",
+      "shipping_address_postal_code": "07972",
+      "shipping_address_country_code": "US",
+      "shipping_address_phone_number": "973-999-3333",
+      "shipping_address_type": "residential",
+      "billing_address_name": "John Jacob JingleHeimer-Schmidt III",
+      "billing_address_street_line_one": "234 House Lane",
+      "billing_address_city": "Little Falls",
+      "billing_address_locale": "NJ",
+      "billing_address_postal_code": "07972",
+      "billing_address_country_code": "US",
+      "billing_address_phone_number": "973-999-3333",
+      "billing_address_type": "residential",
+      "submitted_at": "2018-08-01T00:00:00Z",
+      "line_items": [
+        {
+          "sku_customer_id": "shirts872340",
+          "quantity": 3
+        }
+      ]
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/order_update_requests"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+# Include ALL fields - this is a full replacement
+data = [
+    {
+        "customer_identifier": "129374",
+        "order_type": "customer",
+        "priority": 150,  # Updated priority
+        "shipping_provider": "masonhub",
+        "shipper_service_level": "express",  # Updated service level
+        "shipping_address_name": "John Jacob JingleHeimer-Schmidt III",
+        "shipping_address_street_line_one": "234 House Lane",
+        "shipping_address_city": "Little Falls",
+        "shipping_address_locale": "NJ",
+        "shipping_address_postal_code": "07972",
+        "shipping_address_country_code": "US",
+        "shipping_address_phone_number": "973-999-3333",
+        "shipping_address_type": "residential",
+        "billing_address_name": "John Jacob JingleHeimer-Schmidt III",
+        "billing_address_street_line_one": "234 House Lane",
+        "billing_address_city": "Little Falls",
+        "billing_address_locale": "NJ",
+        "billing_address_postal_code": "07972",
+        "billing_address_country_code": "US",
+        "billing_address_phone_number": "973-999-3333",
+        "billing_address_type": "residential",
+        "submitted_at": "2018-08-01T00:00:00Z",
+        "line_items": [
+            {
+                "sku_customer_id": "shirts872340",
+                "quantity": 3  # Updated quantity
+            }
+        ]
+    }
+]
+
+response = requests.post(url, headers=headers, json=data)
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/order_update_requests', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      customer_identifier: "129374",
+      order_type: "customer",
+      priority: 150,  // Updated priority
+      shipping_provider: "masonhub",
+      shipper_service_level: "express",  // Updated service level
+      shipping_address_name: "John Jacob JingleHeimer-Schmidt III",
+      shipping_address_street_line_one: "234 House Lane",
+      shipping_address_city: "Little Falls",
+      shipping_address_locale: "NJ",
+      shipping_address_postal_code: "07972",
+      shipping_address_country_code: "US",
+      shipping_address_phone_number: "973-999-3333",
+      shipping_address_type: "residential",
+      billing_address_name: "John Jacob JingleHeimer-Schmidt III",
+      billing_address_street_line_one: "234 House Lane",
+      billing_address_city: "Little Falls",
+      billing_address_locale: "NJ",
+      billing_address_postal_code: "07972",
+      billing_address_country_code: "US",
+      billing_address_phone_number: "973-999-3333",
+      billing_address_type: "residential",
+      submitted_at: "2018-08-01T00:00:00Z",
+      line_items: [
+        {
+          sku_customer_id: "shirts872340",
+          quantity: 3  // Updated quantity
+        }
+      ]
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 1,
+  "records_processed": 1,
+  "records_failed": 0,
+  "records_succeeded": 1,
+  "results": [
+    {
+      "system_id": "0b744e29-b668-4486-85dd-82528b5da0dd",
+      "customer_identifier": "129374",
+      "status": "success"
+    }
+  ]
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "ORDER_NOT_FOUND",
+    "message": "Order with customer_identifier not found",
+    "details": {
+      "customer_identifier": "nonexistent-order"
+    }
+  }
+}
+```
+
+```json 409 Conflict
+{
+  "error": {
+    "code": "ORDER_LOCKED",
+    "message": "Order cannot be updated in current status",
+    "details": {
+      "customer_identifier": "129374",
+      "status": "fulfilled",
+      "reason": "Order already shipped"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Update Process
+
+<Steps>
+  <Step title="Fetch Current Order">
+    Retrieve the complete current order data using `GET /orders?cid=your_order_id`
+  </Step>
+  <Step title="Modify Locally">
+    Update only the fields you want to change in your local copy
+  </Step>
+  <Step title="Submit Complete Object">
+    Send the entire modified order object to this endpoint
+  </Step>
+  <Step title="Monitor Status">
+    Use the returned `system_id` to check update status via [Get Order Updates](/api-reference/orders/get-order-updates)
+  </Step>
+</Steps>
+
+## Asynchronous Processing
+
+Updates are processed asynchronously in the background. Monitor completion using:
+
+<Tabs>
+  <Tab title="Polling">
+    Poll the [Get Order Updates](/api-reference/orders/get-order-updates) endpoint with the `system_id`:
+
+    ```bash
+    GET /order_update_requests?id=0b744e29-b668-4486-85dd-82528b5da0dd
+    ```
+
+    Check every 30-60 seconds until status is `success` or `failed`.
+  </Tab>
+
+  <Tab title="Webhooks (Recommended)">
+    Configure `orderUpdateResolution` callback webhooks for automatic notifications:
+
+    ```json
+    {
+      "callback_url": "https://client.com/api/orderUpdateResolution",
+      "message_type": "orderUpdateResolution",
+      "data": [
+        {
+          "update_request_id": "0b744e29-b668-4486-85dd-82528b5da0dd",
+          "customer_identifier": "129374",
+          "status": "success",
+          "updated_at": "2018-08-02T10:15:30Z"
+        }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Update Limitations
+
+<Warning>
+Orders cannot be updated once they reach certain fulfillment stages. Updates will be rejected with a 409 error.
+</Warning>
+
+Updates may fail if:
+
+- Order is already packed or shipped
+- Order has been canceled
+- Referenced SKUs don't exist in catalog
+- Invalid address information
+- Update violates business rules
+
+## Common Update Scenarios
+
+<AccordionGroup>
+  <Accordion title="Change Service Level">
+    Update shipping speed from ground to express:
+
+    ```json
+    {
+      "customer_identifier": "order123",
+      // ... all other existing fields ...
+      "shipper_service_level": "express"  // Changed
+    }
+    ```
+
+    <Note>Service level changes may affect shipping costs.</Note>
+  </Accordion>
+
+  <Accordion title="Update Quantity">
+    Increase or decrease item quantities:
+
+    ```json
+    {
+      "customer_identifier": "order123",
+      // ... all other existing fields ...
+      "line_items": [
+        {
+          "sku_customer_id": "shirts872340",
+          "quantity": 5  // Changed from 2
+        }
+      ]
+    }
+    ```
+
+    <Warning>Ensure sufficient inventory is available for quantity increases.</Warning>
+  </Accordion>
+
+  <Accordion title="Change Address">
+    Update shipping destination:
+
+    ```json
+    {
+      "customer_identifier": "order123",
+      // ... all other existing fields ...
+      "shipping_address_name": "New Recipient",
+      "shipping_address_street_line_one": "456 New Street",
+      // ... update all address fields ...
+    }
+    ```
+
+    <Warning>Address changes not possible after order is packed.</Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Update Early" icon="clock">
+    Submit updates as soon as possible. Once orders enter packing, updates are no longer possible.
+  </Card>
+  <Card title="Fetch Before Update" icon="download">
+    Always fetch current order data first to ensure you're working with the latest information.
+  </Card>
+  <Card title="Use Webhooks" icon="webhook">
+    Configure callbacks instead of polling for better efficiency and real-time notifications.
+  </Card>
+  <Card title="Handle Failures" icon="triangle-exclamation">
+    Check error messages for failed updates and retry with corrections if needed.
+  </Card>
+</CardGroup>
+
+<Tip>
+Store the `system_id` returned when submitting updates. You'll need it to track update status.
+</Tip>

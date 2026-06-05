@@ -1,0 +1,410 @@
+---
+title: 'Create Callback URLs'
+description: 'Register new callback URLs for event notifications'
+api: 'POST /callbacks'
+---
+
+Register webhook URLs to receive real-time event notifications from MasonHub. Subscribe to multiple event types by creating separate callbacks for each.
+
+<Warning>
+All callback URLs must use **HTTPS**. HTTP URLs will be rejected for security reasons.
+</Warning>
+
+## Request Body
+
+Send an array of callback objects to register. Each callback object supports:
+
+<ParamField body="url" type="string" required>
+  HTTPS endpoint URL that will receive webhook notifications. Must be publicly accessible.
+</ParamField>
+
+<ParamField body="message_type" type="string" required>
+  Event type to subscribe to. See available message types below.
+</ParamField>
+
+<ParamField body="api_version" type="string" default="1.0">
+  API version for callback payloads. Defaults to "1.0".
+</ParamField>
+
+<ParamField body="token" type="string">
+  Optional verification token to include in callback requests for authentication. Recommended for production.
+</ParamField>
+
+## Available Message Types
+
+<AccordionGroup>
+  <Accordion title="skuInventoryChange">
+    **Triggered when**: Inventory levels change for any SKU (received, allocated, shipped)
+
+    **Use for**: Real-time inventory synchronization, low stock alerts, reorder automation
+  </Accordion>
+
+  <Accordion title="orderEvent">
+    **Triggered when**: Order status changes (packed, fulfilled, delivered, canceled)
+
+    **Use for**: Order tracking, customer notifications, shipping updates
+  </Accordion>
+
+  <Accordion title="orderUpdateResolution">
+    **Triggered when**: Order update requests complete (success or failure)
+
+    **Use for**: Confirming order modifications, handling update failures
+  </Accordion>
+
+  <Accordion title="orderCancelResolution">
+    **Triggered when**: Order cancellation requests complete (success or failure)
+
+    **Use for**: Confirming cancellations, processing refunds
+  </Accordion>
+
+  <Accordion title="inboundShipmentEvent">
+    **Triggered when**: Inbound shipment status changes (created, received, discrepancies)
+
+    **Use for**: Tracking inventory receipts, handling discrepancies
+  </Accordion>
+
+  <Accordion title="rmaEvent">
+    **Triggered when**: Return merchandise authorization status changes
+
+    **Use for**: Return processing, customer service workflows
+  </Accordion>
+
+  <Accordion title="snapshotReady">
+    **Triggered when**: Inventory snapshot generation completes
+
+    **Use for**: Scheduled inventory reports, data warehouse updates
+  </Accordion>
+</AccordionGroup>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/callbacks" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "url": "https://api.clienturl.com/api/skuInventoryChange",
+      "message_type": "skuInventoryChange",
+      "api_version": "1.0",
+      "token": "your_secure_verification_token"
+    },
+    {
+      "url": "https://api.clienturl.com/api/orderEvent",
+      "message_type": "orderEvent",
+      "api_version": "1.0",
+      "token": "your_secure_verification_token"
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/callbacks"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+callbacks = [
+    {
+        "url": "https://api.clienturl.com/api/skuInventoryChange",
+        "message_type": "skuInventoryChange",
+        "api_version": "1.0",
+        "token": "your_secure_verification_token"
+    },
+    {
+        "url": "https://api.clienturl.com/api/orderEvent",
+        "message_type": "orderEvent",
+        "api_version": "1.0",
+        "token": "your_secure_verification_token"
+    }
+]
+
+response = requests.post(url, headers=headers, json=callbacks)
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/callbacks', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      url: "https://api.clienturl.com/api/skuInventoryChange",
+      message_type: "skuInventoryChange",
+      api_version: "1.0",
+      token: "your_secure_verification_token"
+    },
+    {
+      url: "https://api.clienturl.com/api/orderEvent",
+      message_type: "orderEvent",
+      api_version: "1.0",
+      token: "your_secure_verification_token"
+    }
+  ])
+});
+
+const result = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 Created
+{
+  "callbacks": [
+    {
+      "id": "callback-uuid-789",
+      "url": "https://api.clienturl.com/api/skuInventoryChange",
+      "message_type": "skuInventoryChange",
+      "api_version": "1.0",
+      "status": "active"
+    },
+    {
+      "id": "callback-uuid-012",
+      "url": "https://api.clienturl.com/api/orderEvent",
+      "message_type": "orderEvent",
+      "api_version": "1.0",
+      "status": "active"
+    }
+  ]
+}
+```
+
+```json 400 Invalid URL
+{
+  "error": {
+    "code": "INVALID_URL",
+    "message": "Callback URL must use HTTPS",
+    "details": {
+      "url": "http://api.clienturl.com/webhook",
+      "reason": "HTTP protocol not allowed"
+    }
+  }
+}
+```
+
+```json 409 Duplicate
+{
+  "error": {
+    "code": "DUPLICATE_CALLBACK",
+    "message": "Callback already exists for this URL and message type",
+    "details": {
+      "url": "https://api.clienturl.com/webhook",
+      "message_type": "orderEvent",
+      "existing_id": "callback-uuid-456"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Security
+
+### HTTPS Requirement
+
+All callback URLs must use HTTPS for secure transmission:
+
+<CodeGroup>
+```json ✅ Valid - HTTPS
+{
+  "url": "https://api.clienturl.com/webhook"
+}
+```
+
+```json ❌ Invalid - HTTP
+{
+  "url": "http://api.clienturl.com/webhook"
+}
+```
+</CodeGroup>
+
+### Verification Tokens
+
+Include tokens for authenticating callback requests:
+
+```json
+{
+  "url": "https://api.clienturl.com/webhook",
+  "message_type": "orderEvent",
+  "token": "your_encrypted_verification_token"
+}
+```
+
+The token will be included in all callback requests. Your endpoint should verify the token matches before processing events.
+
+## Webhook Endpoint Requirements
+
+Your webhook endpoints must meet these requirements:
+
+<Steps>
+  <Step title="Accept POST Requests">
+    All callbacks use the POST method with JSON payloads
+  </Step>
+  <Step title="Return HTTP 200">
+    Respond with 200 status code to indicate successful processing
+  </Step>
+  <Step title="Respond Quickly">
+    Return response within 30 seconds to prevent timeouts
+  </Step>
+  <Step title="Handle Duplicates">
+    Implement idempotency using `message_id` to handle at-least-once delivery
+  </Step>
+  <Step title="Validate Authenticity">
+    Verify token when configured to ensure requests are from MasonHub
+  </Step>
+</Steps>
+
+## Example Webhook Implementation
+
+<CodeGroup>
+```python Python (Flask)
+from flask import Flask, request, jsonify
+import logging
+
+app = Flask(__name__)
+logger = logging.getLogger(__name__)
+
+EXPECTED_TOKEN = "your_secure_verification_token"
+
+@app.route('/webhook/masonhub', methods=['POST'])
+def handle_masonhub_webhook():
+    try:
+        payload = request.get_json()
+
+        # Verify token if configured
+        if payload.get('token') != EXPECTED_TOKEN:
+            logger.warning("Invalid token received")
+            return jsonify({"error": "Unauthorized"}), 401
+
+        message_type = payload['message_type']
+        message_id = payload['message_id']
+        data = payload['data']
+
+        # Check for duplicate (implement your own logic)
+        if is_duplicate(message_id):
+            logger.info(f"Duplicate message {message_id} ignored")
+            return jsonify({"status": "ok"}), 200
+
+        # Process based on message type
+        if message_type == 'skuInventoryChange':
+            handle_inventory_change(data)
+        elif message_type == 'orderEvent':
+            handle_order_event(data)
+        else:
+            logger.warning(f"Unknown message type: {message_type}")
+
+        return jsonify({"status": "ok"}), 200
+
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return jsonify({"error": str(e)}), 500
+```
+
+```javascript JavaScript (Express)
+const express = require('express');
+const app = express();
+
+const EXPECTED_TOKEN = 'your_secure_verification_token';
+
+app.post('/webhook/masonhub', express.json(), async (req, res) => {
+  try {
+    const payload = req.body;
+
+    // Verify token
+    if (payload.token !== EXPECTED_TOKEN) {
+      console.warn('Invalid token received');
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { message_type, message_id, data } = payload;
+
+    // Check for duplicate
+    if (await isDuplicate(message_id)) {
+      console.log(`Duplicate message ${message_id} ignored`);
+      return res.status(200).json({ status: 'ok' });
+    }
+
+    // Process based on message type
+    switch (message_type) {
+      case 'skuInventoryChange':
+        await handleInventoryChange(data);
+        break;
+      case 'orderEvent':
+        await handleOrderEvent(data);
+        break;
+      default:
+        console.warn(`Unknown message type: ${message_type}`);
+    }
+
+    res.status(200).json({ status: 'ok' });
+
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+```
+</CodeGroup>
+
+## Delivery Guarantees
+
+<CardGroup cols={2}>
+  <Card title="At-Least-Once Delivery" icon="repeat">
+    Events may be delivered multiple times. Implement idempotency using `message_id`.
+  </Card>
+  <Card title="Retry Logic" icon="arrows-rotate">
+    Failed deliveries are retried with exponential backoff up to 24 hours.
+  </Card>
+  <Card title="Timeout Handling" icon="clock">
+    Requests timeout after 30 seconds. Respond quickly to avoid retries.
+  </Card>
+  <Card title="Error Logging" icon="file-lines">
+    Delivery failures are logged and available on request for troubleshooting.
+  </Card>
+</CardGroup>
+
+## Testing
+
+### Sandbox Environment
+
+Test callbacks in the sandbox environment:
+
+```
+https://sandbox.masonhub.co/{account}/api/v1/callbacks
+```
+
+- All message types available
+- Use DataFactory to trigger test events
+- No impact on production data
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Tokens" icon="shield">
+    Always configure verification tokens for production endpoints.
+  </Card>
+  <Card title="Implement Idempotency" icon="fingerprint">
+    Store `message_id` to detect and ignore duplicate deliveries.
+  </Card>
+  <Card title="Log Everything" icon="book">
+    Log all callback events for debugging and audit trails.
+  </Card>
+  <Card title="Monitor Endpoints" icon="gauge">
+    Monitor webhook endpoint availability and response times.
+  </Card>
+  <Card title="Handle Errors Gracefully" icon="circle-check">
+    Return appropriate HTTP status codes and log errors for investigation.
+  </Card>
+  <Card title="Store Callback IDs" icon="database">
+    Save the returned `id` for each callback for future deletion operations.
+  </Card>
+</CardGroup>
+
+<Tip>
+Start with a single callback type during testing, then expand to additional event types once your implementation is stable.
+</Tip>

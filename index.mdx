@@ -1,69 +1,90 @@
 ---
-title: 'MasonHub ERP Integration Playbook'
-description: 'Complete guide for integrating your ERP system with MasonHub Order Management System using our public API'
+title: 'MasonHub API Reference'
+description: 'Complete API documentation for integrating with MasonHub Order Management System'
 ---
 
-## What You'll Learn
+## MasonHub API Documentation
 
-This playbook covers everything you need to know for a successful integration:
+Welcome to the MasonHub API reference documentation. This documentation provides detailed information about all available API endpoints, authentication methods, and integration patterns.
+
+## API Endpoints
 
 <CardGroup cols={2}>
   <Card
-    title="Getting Started"
-    icon="rocket"
-    href="/getting-started/request-access"
+    title="Overview"
+    icon="book-open"
+    href="/api-reference/overview"
   >
-    Learn how to request access and get your API credentials
+    Get started with the MasonHub API fundamentals
   </Card>
   <Card
-    title="Integration Flows"
-    icon="flow"
-    href="/integration/architecture-flows"
+    title="Authentication"
+    icon="key"
+    href="/api-reference/authentication"
   >
-    Understand the core data flows between your ERP and MasonHub
+    Learn how to authenticate your API requests
   </Card>
   <Card
-    title="Testing & Validation"
-    icon="test-tube"
-    href="/testing/sandbox-testing"
+    title="GraphQL API"
+    icon="code"
+    href="/api-reference/graphql"
   >
-    Complete sandbox testing before production deployment
+    Explore our GraphQL API endpoints and schema
   </Card>
   <Card
-    title="Production Readiness"
-    icon="badge-check"
-    href="/production/readiness-checklist"
+    title="Catalog Management"
+    icon="package"
+    href="/api-reference/catalog"
   >
-    Ensure your integration is ready for production
+    Manage your product catalog and SKU data
+  </Card>
+  <Card
+    title="Order Management"
+    icon="shopping-cart"
+    href="/api-reference/orders"
+  >
+    Create and manage orders through the API
+  </Card>
+  <Card
+    title="Inventory"
+    icon="warehouse"
+    href="/api-reference/inventory"
+  >
+    Track and manage inventory levels
+  </Card>
+  <Card
+    title="Inbound Shipments"
+    icon="truck"
+    href="/api-reference/inbound-shipments"
+  >
+    Handle incoming inventory shipments
+  </Card>
+  <Card
+    title="Shipments"
+    icon="box"
+    href="/api-reference/shipments"
+  >
+    Manage outbound shipments and tracking
+  </Card>
+  <Card
+    title="Callbacks"
+    icon="webhook"
+    href="/api-reference/callbacks"
+  >
+    Configure webhooks and callback events
+  </Card>
+  <Card
+    title="Data Factory"
+    icon="database"
+    href="/api-reference/datafactory"
+  >
+    Access bulk data operations and exports
   </Card>
 </CardGroup>
 
-## Core Integration Flows
-
-### ERP → MasonHub
-- **SKUs** - Product catalog synchronization
-- **Inbound Shipments** - Inventory receiving workflows
-- **Orders** - Order creation and management
-
-### MasonHub → ERP
-- **Inbound Shipment Receipts** - Inventory receipt confirmations
-- **Order Fulfillments** - Shipping and tracking updates
-- **Inventory Snapshots** - Real-time inventory levels
-
-## Quick Start
-
-1. [Request API access](/getting-started/request-access) from your MasonHub contact
-2. [Review the API documentation](/api-reference/overview)
-3. Complete [sandbox testing](/testing/sandbox-testing)
-4. Prepare for [production deployment](/production/go-live)
-
 ## Need Help?
 
-Our integration team is here to support you throughout the process:
+For technical questions about the API:
 
 - **Integration Support**: [integration-support@masonhub.co](mailto:integration-support@masonhub.co)
 - **General Support**: [support@masonhub.co](mailto:support@masonhub.co)
-
----
-
-**Thank you for choosing MasonHub. We look forward to supporting your launch!**

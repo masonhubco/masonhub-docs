@@ -1,0 +1,434 @@
+---
+title: 'Callback Events (Webhooks)'
+description: 'Receive real-time notifications from MasonHub via webhook callbacks'
+---
+
+Callback events (webhooks) provide real-time notifications when specific events occur in MasonHub. This approach delivers immediate updates to your ERP system without the need for continuous polling.
+
+## Overview
+
+Webhooks allow MasonHub to automatically call your endpoints when important events happen, such as order status changes, shipment updates, or inventory modifications.
+
+<CardGroup cols={2}>
+  <Card
+    title="Advantages"
+    icon="zap"
+  >
+    - Real-time notifications
+    - Reduced API call volume
+    - Immediate event processing
+    - Lower latency for critical updates
+  </Card>
+  <Card
+    title="Considerations"
+    icon="gear"
+  >
+    - Requires publicly accessible endpoints
+    - Need proper security implementation
+    - Must handle retry logic
+    - Firewall configuration may be needed
+  </Card>
+</CardGroup>
+
+## Supported Callback Events
+
+### Order Events
+
+<Accordion title="Order Event Types">
+  **Endpoint Configuration**: `POST /orderEvent`
+  
+  **Documentation**: [Order Events API](https://docs.masonhub.co/api/v1#tag/Callback-Events/paths/~1orderEvent/post)
+  
+  **Supported Events:**
+  - Order created
+  - Order updated
+  - Order fulfilled
+  - Order cancelled
+  - Order shipped
+  - Tracking number assigned
+  
+  **Payload Example:**
+  ```json
+  {
+    "event_type": "order.shipped",
+    "order_id": "ORD-12345",
+    "external_id": "YOUR-ORDER-ID",
+    "shipments": [
+      {
+        "tracking_number": "1Z999AA1234567890",
+        "carrier": "UPS",
+        "service_level": "ground"
+      }
+    ],
+    "timestamp": "2024-01-01T10:30:00Z"
+  }
+  ```
+</Accordion>
+
+### Inbound Shipment Events
+
+<Accordion title="Inbound Shipment Event Types">
+  **Endpoint Configuration**: `POST /inboundShipmentEvent`
+  
+  **Documentation**: [Inbound Shipment Events API](https://docs.masonhub.co/api/v1#tag/Callback-Events/paths/~1inboundShipmentEvent/post)
+  
+  **Supported Events:**
+  - Inbound shipment received
+  - Partial receipt processed
+  - Receipt discrepancies identified
+  - Inventory updated
+  
+  **Payload Example:**
+  ```json
+  {
+    "event_type": "inbound_shipment.received",
+    "inbound_shipment_id": "IB-67890",
+    "external_id": "PO-12345",
+    "received_items": [
+      {
+        "sku": "PRODUCT-001",
+        "expected_quantity": 100,
+        "received_quantity": 98,
+        "discrepancy_reason": "damaged"
+      }
+    ],
+    "timestamp": "2024-01-01T14:30:00Z"
+  }
+  ```
+</Accordion>
+
+## Webhook Setup Process
+
+### 1. Endpoint Development
+
+Create secure endpoints in your system to receive webhook calls:
+
+```python
+from flask import Flask, request, jsonify
+import hmac
+import hashlib
+
+app = Flask(__name__)
+
+@app.route('/webhooks/masonhub/orders', methods=['POST'])
+def handle_order_webhook():
+    # Verify webhook signature
+    if not verify_webhook_signature(request):
+        return jsonify({'error': 'Invalid signature'}), 401
+    
+    # Process the event
+    event_data = request.json
+    process_order_event(event_data)
+    
+    return jsonify({'status': 'received'}), 200
+
+def verify_webhook_signature(request):
+    signature = request.headers.get('X-MasonHub-Signature')
+    payload = request.get_data()
+    
+    expected_signature = hmac.new(
+        WEBHOOK_SECRET.encode(),
+        payload,
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(signature, expected_signature)
+```
+
+### 2. Webhook Registration
+
+Register your webhook endpoints with MasonHub:
+
+<Steps>
+  <Step title="Contact Integration Team">
+    Provide your webhook URLs to the MasonHub integration team
+  </Step>
+  <Step title="Specify Event Types">
+    Define which events you want to receive notifications for
+  </Step>
+  <Step title="Configure Authentication">
+    Set up webhook signature verification secrets
+  </Step>
+  <Step title="Test Configuration">
+    Validate webhook delivery in sandbox environment
+  </Step>
+</Steps>
+
+## Security Implementation
+
+### Webhook Authentication
+
+<Warning>
+Always verify webhook authenticity to prevent unauthorized access to your systems.
+</Warning>
+
+#### Signature Verification
+
+MasonHub signs webhooks using HMAC-SHA256:
+
+```python
+import hmac
+import hashlib
+
+def verify_signature(payload, signature, secret):
+    expected_signature = hmac.new(
+        secret.encode('utf-8'),
+        payload,
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(
+        f"sha256={expected_signature}",
+        signature
+    )
+```
+
+#### IP Allowlisting
+
+Consider restricting webhook access to MasonHub IP addresses:
+
+```python
+ALLOWED_IPS = [
+    '192.168.1.100',  # Example MasonHub IP
+    '10.0.0.50'       # Example MasonHub IP
+]
+
+def is_allowed_ip(request_ip):
+    return request_ip in ALLOWED_IPS
+```
+
+## Event Processing Patterns
+
+### Idempotent Processing
+
+Handle duplicate webhook deliveries gracefully:
+
+```python
+def process_order_event(event_data):
+    event_id = event_data.get('event_id')
+    
+    # Check if we've already processed this event
+    if is_event_processed(event_id):
+        return {'status': 'already_processed'}
+    
+    # Process the event
+    result = update_order_in_erp(event_data)
+    
+    # Mark event as processed
+    mark_event_processed(event_id)
+    
+    return result
+```
+
+### Error Handling & Retries
+
+<Accordion title="Retry Logic">
+  **MasonHub Retry Behavior:**
+  - Initial delivery attempt
+  - Retry after 1 minute if failed
+  - Retry after 5 minutes if failed
+  - Retry after 15 minutes if failed
+  - Final retry after 1 hour
+  
+  **Your Response Requirements:**
+  - Return HTTP 200 for successful processing
+  - Return HTTP 4xx for permanent failures (no retry)
+  - Return HTTP 5xx for temporary failures (will retry)
+</Accordion>
+
+### Asynchronous Processing
+
+For complex processing, consider queuing webhook events:
+
+```python
+import redis
+import json
+
+redis_client = redis.Redis()
+
+@app.route('/webhooks/masonhub/orders', methods=['POST'])
+def handle_order_webhook():
+    # Quickly acknowledge receipt
+    event_data = request.json
+    
+    # Queue for processing
+    redis_client.lpush(
+        'webhook_queue',
+        json.dumps(event_data)
+    )
+    
+    return jsonify({'status': 'queued'}), 200
+
+# Separate worker process
+def process_webhook_queue():
+    while True:
+        event_json = redis_client.brpop('webhook_queue')[1]
+        event_data = json.loads(event_json)
+        process_order_event(event_data)
+```
+
+## Event Types & Use Cases
+
+### Order Events
+
+<Tabs>
+  <Tab title="Order Fulfillment">
+    **Event**: `order.fulfilled`
+    
+    **Use Case**: Update ERP with shipment details
+    
+    **Action**: 
+    - Update order status
+    - Record tracking numbers
+    - Trigger customer notifications
+  </Tab>
+  <Tab title="Order Updates">
+    **Event**: `order.updated`
+    
+    **Use Case**: Sync order modifications
+    
+    **Action**:
+    - Update line items
+    - Modify shipping details
+    - Adjust pricing
+  </Tab>
+</Tabs>
+
+### Inventory Events
+
+<Tabs>
+  <Tab title="Stock Updates">
+    **Event**: `inventory.updated`
+    
+    **Use Case**: Real-time inventory sync
+    
+    **Action**:
+    - Update available quantities
+    - Trigger reorder alerts
+    - Update product availability
+  </Tab>
+  <Tab title="Receipts">
+    **Event**: `inbound_shipment.received`
+    
+    **Use Case**: Process inventory receipts
+    
+    **Action**:
+    - Update stock levels
+    - Close purchase orders
+    - Handle discrepancies
+  </Tab>
+</Tabs>
+
+## Monitoring & Troubleshooting
+
+### Webhook Health Monitoring
+
+<CardGroup cols={2}>
+  <Card
+    title="Delivery Metrics"
+    icon="chart-line"
+  >
+    - Successful deliveries
+    - Failed deliveries
+    - Average response times
+    - Retry rates
+  </Card>
+  <Card
+    title="Processing Metrics"
+    icon="cog"
+  >
+    - Events processed
+    - Processing errors
+    - Queue depths
+    - Duplicate events
+  </Card>
+</CardGroup>
+
+### Common Issues & Solutions
+
+<Accordion title="Webhook Not Received">
+  **Possible Causes:**
+  - Endpoint not accessible
+  - Firewall blocking requests
+  - SSL certificate issues
+  
+  **Solutions:**
+  - Test endpoint accessibility
+  - Configure firewall rules
+  - Verify SSL configuration
+</Accordion>
+
+<Accordion title="Authentication Failures">
+  **Possible Causes:**
+  - Incorrect webhook secret
+  - Signature verification issues
+  - Clock synchronization problems
+  
+  **Solutions:**
+  - Verify webhook secret configuration
+  - Check signature calculation
+  - Ensure system time accuracy
+</Accordion>
+
+## Testing Webhooks
+
+### Sandbox Testing
+
+<Steps>
+  <Step title="Setup Test Endpoints">
+    Configure webhook endpoints in your development environment
+  </Step>
+  <Step title="Register with MasonHub">
+    Provide test webhook URLs to integration team
+  </Step>
+  <Step title="Trigger Test Events">
+    Create test orders and shipments to generate webhook events
+  </Step>
+  <Step title="Validate Processing">
+    Confirm events are received and processed correctly
+  </Step>
+</Steps>
+
+### Testing Tools
+
+Use tools to test webhook handling:
+
+```bash
+# Using ngrok for local testing
+ngrok http 8000
+
+# Using curl to simulate webhook
+curl -X POST http://localhost:8000/webhooks/masonhub/orders \
+  -H "Content-Type: application/json" \
+  -H "X-MasonHub-Signature: sha256=..." \
+  -d '{"event_type": "order.shipped", "order_id": "test"}'
+```
+
+## Round-Trip Validation
+
+<Note>
+**Critical Requirement**: Ensure tracking numbers and shipment information successfully flow back to your source system through webhook processing.
+</Note>
+
+### Validation Checklist
+
+- [ ] Webhook endpoint receives events
+- [ ] Signature verification works
+- [ ] Events are processed correctly
+- [ ] ERP system is updated
+- [ ] Customer notifications are triggered
+- [ ] Error handling works properly
+
+## Complete Documentation
+
+<Card
+  title="Callback Events Documentation"
+  icon="book"
+  href="https://docs.masonhub.co/api/v1#tag/Callback-Events"
+>
+  Comprehensive documentation for setup instructions and payload samples
+</Card>
+
+## Next Steps
+
+Consider implementing a hybrid approach using both [polling](/data-sync/polling-get-calls) for bulk data and webhooks for real-time critical updates.

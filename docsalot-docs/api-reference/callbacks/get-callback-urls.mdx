@@ -1,0 +1,197 @@
+---
+title: 'Get Callback URLs'
+description: 'Retrieve registered callback URLs filtered by message type'
+api: 'GET /callbacks'
+---
+
+Retrieve all registered webhook callback URLs, optionally filtered by message type. Use this endpoint to view and audit your current webhook subscriptions.
+
+<Note>
+Filter by specific message types to reduce response size, or use `message_type=all` to retrieve all callbacks at once.
+</Note>
+
+## Query Parameters
+
+<ParamField query="message_type" type="string" default="all">
+  Filter callbacks by message type. Use `all` to retrieve all callbacks regardless of type.
+</ParamField>
+
+## Available Message Types
+
+<CardGroup cols={2}>
+  <Card title="skuInventoryChange" icon="boxes-stacked">
+    Inventory level changes for any SKU
+  </Card>
+  <Card title="orderEvent" icon="box">
+    Order status updates (created, shipped, delivered, canceled)
+  </Card>
+  <Card title="orderUpdateResolution" icon="pen-to-square">
+    Order update request completion status
+  </Card>
+  <Card title="orderCancelResolution" icon="ban">
+    Order cancellation request completion status
+  </Card>
+  <Card title="inboundShipmentEvent" icon="truck-ramp-box">
+    Inbound shipment status changes
+  </Card>
+  <Card title="rmaEvent" icon="arrow-rotate-left">
+    Return merchandise authorization updates
+  </Card>
+  <Card title="snapshotReady" icon="camera">
+    Inventory snapshot generation completion
+  </Card>
+</CardGroup>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://app.masonhub.co/{account}/api/v1/callbacks?message_type=skuInventoryChange" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/callbacks"
+headers = {
+    "Authorization": "Bearer your_jwt_token"
+}
+params = {
+    "message_type": "skuInventoryChange"
+}
+
+response = requests.get(url, headers=headers, params=params)
+callbacks = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/callbacks?message_type=skuInventoryChange', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token'
+  }
+});
+
+const callbacks = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+[
+  {
+    "id": "callback-uuid-123",
+    "url": "https://api.clienturl.com/api/inventory_event",
+    "message_type": "skuInventoryChange",
+    "api_version": "1.0",
+    "token": "encrypted_verification_token",
+    "created_at": "2018-08-01T10:30:00Z"
+  },
+  {
+    "id": "callback-uuid-456",
+    "url": "https://api.clienturl.com/api/order_event",
+    "message_type": "orderEvent",
+    "api_version": "1.0",
+    "token": "encrypted_verification_token",
+    "created_at": "2018-08-01T10:35:00Z"
+  }
+]
+```
+
+```json 200 Empty Result
+[]
+```
+</ResponseExample>
+
+## Response Fields
+
+Each callback object in the response includes:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique callback UUID for future operations |
+| `url` | string | HTTPS webhook endpoint URL |
+| `message_type` | string | Event type this callback is subscribed to |
+| `api_version` | string | API version for callback payloads |
+| `token` | string | Encrypted verification token (if configured) |
+| `created_at` | string | Registration timestamp in RFC3339 format |
+
+## Callback Payload Format
+
+When events occur, MasonHub sends POST requests to registered URLs with this structure:
+
+```json
+{
+  "callback_url": "https://client.com/api/webhook",
+  "message_type": "eventType",
+  "message_id": "unique-event-id",
+  "api_version": "1.0",
+  "data": [
+    {
+      // Event-specific data
+    }
+  ]
+}
+```
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Audit Callbacks">
+    Periodically fetch all callbacks to ensure your webhook configuration is up to date:
+
+    ```bash
+    GET /callbacks?message_type=all
+    ```
+
+    Review the list and remove any callbacks pointing to decommissioned endpoints.
+  </Tab>
+
+  <Tab title="Verify Registration">
+    After registering a new callback, verify it was created successfully:
+
+    ```bash
+    GET /callbacks?message_type=orderEvent
+    ```
+
+    Check that your URL appears in the results with the correct configuration.
+  </Tab>
+
+  <Tab title="Get Callback IDs">
+    Retrieve callback IDs for deletion operations:
+
+    ```python
+    # Get all callbacks for a message type
+    callbacks = get_callbacks("orderEvent")
+
+    # Find specific callback by URL
+    callback_to_delete = next(
+        c for c in callbacks
+        if c['url'] == 'https://old-domain.com/webhook'
+    )
+
+    # Use the ID for deletion
+    delete_callback(callback_to_delete['id'])
+    ```
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Regular Audits" icon="clipboard-check">
+    Periodically review registered callbacks to ensure they're current and pointing to valid endpoints.
+  </Card>
+  <Card title="Message Type Filtering" icon="filter">
+    Use specific message types when fetching callbacks to reduce response size and improve performance.
+  </Card>
+  <Card title="Store Callback IDs" icon="database">
+    Save callback IDs when creating registrations for easier management and deletion later.
+  </Card>
+  <Card title="Monitor Endpoints" icon="heart-pulse">
+    Ensure all registered URLs are accessible and responding correctly to avoid delivery failures.
+  </Card>
+</CardGroup>
+
+<Tip>
+Use `message_type=all` during initial setup to get a complete view of all your webhook subscriptions.
+</Tip>

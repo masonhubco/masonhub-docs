@@ -1,0 +1,69 @@
+---
+title: 'Order Shipment Event'
+description: 'Simulate carrier delivery events for shipments (Sandbox only)'
+api: 'POST /data_factory/orderShipmentEvent'
+---
+
+Simulate carrier delivery events for existing shipments to test tracking and delivery workflows.
+
+<Warning>
+DataFactory is only available in the sandbox environment.
+</Warning>
+
+## Request Body
+
+<ParamField body="tracking_number" type="string" required>
+  Tracking number of the shipment to update.
+</ParamField>
+
+<ParamField body="event" type="string" required>
+  Event type. Options: `tendered`, `inTransit`, `delivered`, `undeliverable`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/data_factory/orderShipmentEvent" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type": "application/json" \
+  -d '[{"tracking_number": "1z324897234nferg45", "event": "delivered"}]'
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/data_factory/orderShipmentEvent"
+response = requests.post(url,
+    headers={"Authorization": "Bearer your_jwt_token"},
+    json=[{"tracking_number": "1z324897234nferg45", "event": "delivered"}])
+```
+
+```javascript JavaScript
+await fetch('https://app.masonhub.co/{account}/api/v1/data_factory/orderShipmentEvent', {
+  method: 'POST',
+  headers: {'Authorization': 'Bearer your_jwt_token', 'Content-Type': 'application/json'},
+  body: JSON.stringify([{tracking_number: "1z324897234nferg45", event: "delivered"}])
+});
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "success": true,
+  "data": [{"tracking_number": "1z324897234nferg45", "event": "delivered", "timestamp": "2024-01-14T16:00:00Z"}]
+}
+```
+</ResponseExample>
+
+## Available Events
+
+<Steps>
+  <Step title="Tendered">Package tendered to carrier for pickup</Step>
+  <Step title="In Transit">Package is in transit to destination</Step>
+  <Step title="Delivered">Package successfully delivered to customer</Step>
+  <Step title="Undeliverable">Package could not be delivered</Step>
+</Steps>
+
+## Testing Workflows
+
+Test complete delivery lifecycle from fulfillment through delivery confirmation.

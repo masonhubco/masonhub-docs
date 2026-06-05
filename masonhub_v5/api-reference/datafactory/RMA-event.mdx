@@ -1,0 +1,122 @@
+---
+title: 'RMA Event'
+description: 'Simulate RMA receiving and processing events (Sandbox only)'
+api: 'POST /data_factory/rmaEvent'
+---
+
+Simulate RMA (Return Merchandise Authorization) receiving and processing events to test return workflows.
+
+<Warning>
+DataFactory is only available in the sandbox environment.
+</Warning>
+
+## Request Body
+
+<ParamField body="customer_identifier" type="string" required>
+  RMA customer identifier.
+</ParamField>
+
+<ParamField body="event" type="string" required>
+  RMA event type. Options: `receiveFull`, `receivePartial`, `tendered`, `inTransit`, `delivered`.
+</ParamField>
+
+<ParamField body="randomize_inventory_statuses" type="boolean" default="false">
+  Randomize return inventory statuses for testing quality scenarios.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/data_factory/rmaEvent" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[{
+    "customer_identifier": "rma123",
+    "event": "receiveFull",
+    "randomize_inventory_statuses": true
+  }]'
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/data_factory/rmaEvent"
+response = requests.post(url,
+    headers={"Authorization": "Bearer your_jwt_token"},
+    json=[{
+        "customer_identifier": "rma123",
+        "event": "receiveFull",
+        "randomize_inventory_statuses": True
+    }])
+```
+
+```javascript JavaScript
+await fetch('https://app.masonhub.co/{account}/api/v1/data_factory/rmaEvent', {
+  method: 'POST',
+  headers: {'Authorization': 'Bearer your_jwt_token', 'Content-Type': 'application/json'},
+  body: JSON.stringify([{
+    customer_identifier: "rma123",
+    event: "receiveFull",
+    randomize_inventory_statuses: true
+  }])
+});
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "success": true,
+  "data": [{
+    "customer_identifier": "rma123",
+    "event": "receiveFull",
+    "status": "received"
+  }]
+}
+```
+</ResponseExample>
+
+## Available Events
+
+<AccordionGroup>
+  <Accordion title="Receive Full">
+    Receive all expected items from the RMA
+  </Accordion>
+  <Accordion title="Receive Partial">
+    Receive random subset of expected items
+  </Accordion>
+  <Accordion title="Tendered">
+    Return package tendered to carrier
+  </Accordion>
+  <Accordion title="In Transit">
+    Return package in transit to facility
+  </Accordion>
+  <Accordion title="Delivered">
+    Return package delivered to facility
+  </Accordion>
+</AccordionGroup>
+
+## Randomization
+
+When `randomize_inventory_statuses` is true, returned items are received into random statuses:
+- available (resaleable)
+- damaged
+- quality-control
+- refurbishing
+- under-investigation
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Return Processing" icon="rotate-left">
+    Test complete return lifecycle from creation to receipt
+  </Card>
+  <Card title="Quality Scenarios" icon="microscope">
+    Test handling of returns in various conditions
+  </Card>
+  <Card title="Partial Returns" icon="boxes-stacked">
+    Test scenarios where customers don't return all items
+  </Card>
+  <Card title="Callback Validation" icon="bell">
+    Verify **rmaEvent** callback processing
+  </Card>
+</CardGroup>

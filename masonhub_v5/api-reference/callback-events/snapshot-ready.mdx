@@ -1,0 +1,273 @@
+---
+title: 'Snapshot Ready'
+description: 'Webhook event sent when full inventory snapshots are ready for download'
+---
+
+The Snapshot Ready event notifies you when a requested inventory snapshot has been generated and is ready for download. This provides a complete point-in-time view of your entire inventory across all locations and statuses.
+
+<Note>
+Snapshot URLs expire after 7 days. Download the file promptly after receiving this event.
+</Note>
+
+## Event Payload
+
+```json
+{
+  "callback_url": "https://client.com/api/snapshotReady",
+  "message_type": "snapshotReady",
+  "message_id": "0896116f-e54b-4756-9d3e-1b0c4a25d821",
+  "data": {
+    "snapshot_id": "snapshot-uuid-123",
+    "snapshot_type": "full",
+    "as_of": "2019-08-05T08:15:30Z",
+    "download_url": "https://app.masonhub.co/downloads/snapshot-123.csv",
+    "expires_at": "2019-08-12T08:15:30Z"
+  }
+}
+```
+
+## Payload Fields
+
+<ResponseField name="callback_url" type="string">
+  Your registered webhook endpoint URL
+</ResponseField>
+
+<ResponseField name="message_type" type="string">
+  Always `snapshotReady` for this event type
+</ResponseField>
+
+<ResponseField name="message_id" type="string">
+  Unique identifier for this event
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Snapshot information
+
+  <Expandable title="Snapshot Data">
+    <ResponseField name="snapshot_id" type="string">
+      Unique identifier for this snapshot
+    </ResponseField>
+
+    <ResponseField name="snapshot_type" type="string">
+      Type of snapshot: `full` (complete inventory) or `delta` (changes only)
+    </ResponseField>
+
+    <ResponseField name="as_of" type="string">
+      Timestamp of the inventory snapshot (RFC3339)
+    </ResponseField>
+
+    <ResponseField name="download_url" type="string">
+      Pre-signed URL to download the snapshot file (CSV format)
+    </ResponseField>
+
+    <ResponseField name="expires_at" type="string">
+      Expiration timestamp for the download URL (RFC3339)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Snapshot Types
+
+<CardGroup cols={2}>
+  <Card title="Full Snapshot" icon="database">
+    Complete inventory across all SKUs, locations, and statuses
+  </Card>
+  <Card title="Delta Snapshot" icon="code-compare">
+    Only items that changed since the last snapshot
+  </Card>
+</CardGroup>
+
+## CSV File Format
+
+The downloaded CSV file contains the following columns:
+
+| Column | Description |
+|--------|-------------|
+| `sku_id` | MasonHub internal UUID |
+| `customer_identifier` | Your SKU identifier |
+| `location_id` | Warehouse location UUID |
+| `location_address` | Human-readable location |
+| `inventory_status` | Status (available, allocated, damaged, etc.) |
+| `quantity` | Quantity in this location/status |
+| `as_of` | Timestamp of this record |
+
+### Example CSV Content
+
+```csv
+sku_id,customer_identifier,location_id,location_address,inventory_status,quantity,as_of
+e5d00ff6-b34a-496e-9559-eb90e99463af,SKU-10000,bf7bb516-ce52-8950-2a8b-9008f0091d93,"MasonHub - Rancho Cucamonga",available,100,2019-08-05T08:15:30Z
+e5d00ff6-b34a-496e-9559-eb90e99463af,SKU-10000,bf7bb516-ce52-8950-2a8b-9008f0091d93,"MasonHub - Rancho Cucamonga",allocated,50,2019-08-05T08:15:30Z
+```
+
+## Implementation Example
+
+```python Python
+import requests
+import csv
+from io import StringIO
+
+@app.route('/api/snapshotReady', methods=['POST'])
+def handle_snapshot_ready():
+    try:
+        payload = request.get_json()
+        message_id = payload['message_id']
+
+        # Check if already processed
+        if is_message_processed(message_id):
+            return 'OK', 200
+
+        # Extract snapshot info
+        snapshot_data = payload['data']
+        download_url = snapshot_data['download_url']
+        snapshot_id = snapshot_data['snapshot_id']
+        snapshot_type = snapshot_data['snapshot_type']
+
+        # Download the snapshot file
+        response = requests.get(download_url)
+        response.raise_for_status()
+
+        # Parse CSV data
+        csv_data = StringIO(response.text)
+        reader = csv.DictReader(csv_data)
+
+        # Process each row
+        for row in reader:
+            sku_id = row['customer_identifier']
+            location = row['location_id']
+            status = row['inventory_status']
+            quantity = int(row['quantity'])
+
+            # Update your inventory system
+            update_inventory_snapshot(sku_id, location, status, quantity)
+
+        # Mark as processed
+        mark_message_processed(message_id)
+        logger.info(f"Processed snapshot {snapshot_id}")
+
+        return 'OK', 200
+
+    except Exception as e:
+        logger.error(f"Snapshot webhook error: {e}")
+        return 'Error', 500
+```
+
+```javascript JavaScript
+const axios = require('axios');
+const csv = require('csv-parser');
+const { Readable } = require('stream');
+
+app.post('/api/snapshotReady', async (req, res) => {
+  try {
+    const payload = req.body;
+    const messageId = payload.message_id;
+
+    // Check if already processed
+    if (await isMessageProcessed(messageId)) {
+      return res.status(200).send('OK');
+    }
+
+    // Extract snapshot info
+    const snapshotData = payload.data;
+    const downloadUrl = snapshotData.download_url;
+    const snapshotId = snapshotData.snapshot_id;
+
+    // Download the snapshot file
+    const response = await axios.get(downloadUrl);
+
+    // Parse CSV data
+    const rows = [];
+    await new Promise((resolve, reject) => {
+      Readable.from(response.data)
+        .pipe(csv())
+        .on('data', (row) => rows.push(row))
+        .on('end', resolve)
+        .on('error', reject);
+    });
+
+    // Process each row
+    for (const row of rows) {
+      await updateInventorySnapshot(
+        row.customer_identifier,
+        row.location_id,
+        row.inventory_status,
+        parseInt(row.quantity)
+      );
+    }
+
+    // Mark as processed
+    await markMessageProcessed(messageId);
+    console.log(`Processed snapshot ${snapshotId}`);
+
+    res.status(200).send('OK');
+
+  } catch (error) {
+    console.error('Snapshot webhook error:', error);
+    res.status(500).send('Error');
+  }
+});
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Inventory Reconciliation" icon="scale-balanced">
+    Compare MasonHub data with your system to identify discrepancies
+  </Card>
+  <Card title="Historical Analysis" icon="chart-line">
+    Archive snapshots for trend analysis and reporting
+  </Card>
+  <Card title="Data Warehouse Sync" icon="database">
+    Bulk load inventory data into analytics systems
+  </Card>
+  <Card title="Backup & Recovery" icon="floppy-disk">
+    Maintain backup copies of inventory state
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Download Promptly" icon="clock">
+    Download snapshots immediately - URLs expire in 7 days
+  </Card>
+  <Card title="Process Asynchronously" icon="gears">
+    Queue snapshot processing as background jobs for large files
+  </Card>
+  <Card title="Validate Data" icon="check-double">
+    Verify row counts and key fields before applying updates
+  </Card>
+  <Card title="Archive Snapshots" icon="box-archive">
+    Store snapshot files for historical analysis and auditing
+  </Card>
+</CardGroup>
+
+<Warning>
+Large catalogs can generate multi-megabyte CSV files. Ensure your processing pipeline can handle files up to 100MB+.
+</Warning>
+
+## Requesting Snapshots
+
+To request a new snapshot, use the Inventory API:
+
+```bash
+POST /inventory/snapshot
+{
+  "snapshot_type": "full"
+}
+```
+
+You'll receive a `snapshotReady` event when the snapshot is generated.
+
+## Response Requirements
+
+Your webhook endpoint must:
+
+1. **Respond quickly** - Acknowledge receipt with 200 OK immediately
+2. **Process asynchronously** - Download and process the file in a background job
+3. **Handle large files** - Support streaming for files up to 100MB+
+4. **Retry downloads** - Implement retry logic for download failures
+
+## Related Events
+
+- [SKU Inventory Change Event](/api-reference/callback-events/sku-inventory-change-event) - Real-time inventory updates
+- [Inbound Shipment Events](/api-reference/callback-events/inbound-shipment-events) - Triggers inventory changes

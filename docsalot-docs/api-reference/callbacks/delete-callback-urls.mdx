@@ -1,0 +1,324 @@
+---
+title: 'Delete Callback URLs'
+description: 'Remove callback subscriptions by ID'
+api: 'DELETE /callbacks'
+---
+
+Delete registered callback URLs to stop receiving webhook notifications. Deletion is immediate and cannot be undone.
+
+<Warning>
+**Permanent Action**: Callback deletion is immediate and irreversible. You'll need to re-register callbacks if deleted by mistake.
+</Warning>
+
+## Request Body
+
+Send an array of callback UUIDs to delete. These IDs are obtained from the [Get Callback URLs](/api-reference/callbacks/get-callback-urls) or [Create Callback URLs](/api-reference/callbacks/create-callback-urls) endpoints.
+
+<ParamField body="callback_ids" type="array" required>
+  Array of callback UUID strings to delete.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X DELETE "https://app.masonhub.co/{account}/api/v1/callbacks" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '["callback-uuid-123", "callback-uuid-456"]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/callbacks"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+callback_ids = [
+    "callback-uuid-123",
+    "callback-uuid-456"
+]
+
+response = requests.delete(url, headers=headers, json=callback_ids)
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/callbacks', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    "callback-uuid-123",
+    "callback-uuid-456"
+  ])
+});
+
+const result = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "deleted": [
+    {
+      "id": "callback-uuid-123",
+      "status": "success"
+    },
+    {
+      "id": "callback-uuid-456",
+      "status": "success"
+    }
+  ]
+}
+```
+
+```json 207 Partial Success
+{
+  "deleted": [
+    {
+      "id": "callback-uuid-123",
+      "status": "success"
+    },
+    {
+      "id": "callback-uuid-999",
+      "status": "failed",
+      "error_message": "Callback not found"
+    }
+  ]
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "CALLBACK_NOT_FOUND",
+    "message": "One or more callbacks not found",
+    "details": {
+      "not_found": ["callback-uuid-999"]
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Common Failure Reasons
+
+Deletions may fail if:
+
+- Callback ID doesn't exist in your account
+- Callback was already deleted
+- Invalid UUID format provided
+- Insufficient permissions for the callback
+
+## Temporary Suspension Alternative
+
+Instead of permanently deleting callbacks, consider using **Callback Holds** to temporarily pause delivery:
+
+<Tabs>
+  <Tab title="Create Hold">
+    Pause event delivery without losing configuration:
+
+    ```bash
+    POST /callback_holds
+    ```
+
+    ```json
+    [
+      "skuInventoryChange",
+      "orderEvent"
+    ]
+    ```
+
+    Events won't be delivered while holds are active, but callbacks remain registered.
+  </Tab>
+
+  <Tab title="Remove Hold">
+    Resume event delivery:
+
+    ```bash
+    DELETE /callback_holds
+    ```
+
+    ```json
+    [
+      "skuInventoryChange",
+      "orderEvent"
+    ]
+    ```
+
+    Events resume immediately after hold removal.
+  </Tab>
+</Tabs>
+
+<Note>
+Callback holds are useful for maintenance windows, system upgrades, or temporary service disruptions without losing your webhook configuration.
+</Note>
+
+## Deletion Process
+
+<Steps>
+  <Step title="List Callbacks">
+    Use [Get Callback URLs](/api-reference/callbacks/get-callback-urls) to retrieve callback IDs
+  </Step>
+  <Step title="Identify Targets">
+    Select which callbacks to delete based on URL, message type, or other criteria
+  </Step>
+  <Step title="Submit Deletion">
+    Send array of callback IDs to the DELETE endpoint
+  </Step>
+  <Step title="Verify Response">
+    Check that all deletions succeeded, handle any failures
+  </Step>
+</Steps>
+
+## Batch Deletion
+
+Delete multiple callbacks efficiently in a single request:
+
+```json
+[
+  "callback-uuid-001",
+  "callback-uuid-002",
+  "callback-uuid-003",
+  "callback-uuid-004"
+]
+```
+
+The response includes individual status for each deletion in the `deleted` array.
+
+## Example: Clean Up Old Callbacks
+
+<CodeGroup>
+```python Python
+import requests
+
+def cleanup_old_callbacks(base_url, token, old_domain):
+    """Remove callbacks pointing to decommissioned endpoints"""
+
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Get all callbacks
+    response = requests.get(
+        f"{base_url}/callbacks",
+        headers=headers,
+        params={"message_type": "all"}
+    )
+    callbacks = response.json()
+
+    # Find callbacks to delete
+    to_delete = [
+        cb['id'] for cb in callbacks
+        if old_domain in cb['url']
+    ]
+
+    if not to_delete:
+        print("No callbacks to delete")
+        return
+
+    # Delete in batch
+    response = requests.delete(
+        f"{base_url}/callbacks",
+        headers=headers,
+        json=to_delete
+    )
+
+    result = response.json()
+    print(f"Deleted {len([d for d in result['deleted'] if d['status'] == 'success'])} callbacks")
+```
+
+```javascript JavaScript
+async function cleanupOldCallbacks(baseUrl, token, oldDomain) {
+  const headers = { 'Authorization': `Bearer ${token}` };
+
+  // Get all callbacks
+  const response = await fetch(`${baseUrl}/callbacks?message_type=all`, {
+    headers
+  });
+  const callbacks = await response.json();
+
+  // Find callbacks to delete
+  const toDelete = callbacks
+    .filter(cb => cb.url.includes(oldDomain))
+    .map(cb => cb.id);
+
+  if (toDelete.length === 0) {
+    console.log('No callbacks to delete');
+    return;
+  }
+
+  // Delete in batch
+  const deleteResponse = await fetch(`${baseUrl}/callbacks`, {
+    method: 'DELETE',
+    headers: {
+      ...headers,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(toDelete)
+  });
+
+  const result = await deleteResponse.json();
+  const successCount = result.deleted.filter(d => d.status === 'success').length;
+  console.log(`Deleted ${successCount} callbacks`);
+}
+```
+</CodeGroup>
+
+## Monitoring Impact
+
+After deletion, the following changes take effect immediately:
+
+<Steps>
+  <Step title="Stop Deliveries">
+    Webhook deliveries stop immediately for deleted callbacks
+  </Step>
+  <Step title="Cancel Pending">
+    Any queued events for deleted callbacks are discarded
+  </Step>
+  <Step title="Clear Retries">
+    Previously failed delivery attempts are canceled
+  </Step>
+  <Step title="Remove Configuration">
+    Callback configuration is permanently removed from the system
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Holds First" icon="pause">
+    Try callback holds before permanent deletion for temporary issues.
+  </Card>
+  <Card title="Verify Before Delete" icon="magnifying-glass">
+    Use Get Callback URLs to confirm IDs before deletion to avoid mistakes.
+  </Card>
+  <Card title="Backup Configuration" icon="floppy-disk">
+    Keep records of callback URLs and message types for easy re-registration.
+  </Card>
+  <Card title="Batch Operations" icon="layer-group">
+    Delete multiple callbacks in single requests for efficiency.
+  </Card>
+  <Card title="Monitor Endpoints" icon="chart-line">
+    Remove callbacks for decommissioned endpoints to keep configuration clean.
+  </Card>
+  <Card title="Document Changes" icon="book">
+    Keep audit logs of callback deletions for troubleshooting and compliance.
+  </Card>
+</CardGroup>
+
+## Re-registration
+
+If you need to re-register a deleted callback:
+
+1. Use [Create Callback URLs](/api-reference/callbacks/create-callback-urls) with the same URL and message type
+2. A new callback ID will be assigned
+3. Events will resume delivery after successful creation
+
+<Tip>
+Before deleting production callbacks, test your system's behavior without webhook events to ensure graceful degradation.
+</Tip>

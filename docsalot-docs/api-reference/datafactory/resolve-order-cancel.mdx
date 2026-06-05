@@ -1,0 +1,65 @@
+---
+title: 'Resolve Order Cancel'
+description: 'Force resolution of pending order cancel requests (Sandbox only)'
+api: 'POST /data_factory/resolveOrderCancel'
+---
+
+Force resolution of pending order cancel requests for testing asynchronous cancellation workflows.
+
+<Warning>
+DataFactory is only available in the sandbox environment.
+</Warning>
+
+## Request Body
+
+<ParamField body="order_cancel_request_id" type="string" required>
+  UUID of the order cancel request to resolve.
+</ParamField>
+
+<ParamField body="resolution" type="string" required>
+  Resolution status. Options: `success` or `failure`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/data_factory/resolveOrderCancel" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[{"order_cancel_request_id": "0b744e29-b668-4486-85dd-82528b5da0dd", "resolution": "success"}]'
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/data_factory/resolveOrderCancel"
+response = requests.post(url,
+    headers={"Authorization": "Bearer your_jwt_token"},
+    json=[{"order_cancel_request_id": "0b744e29-b668-4486-85dd-82528b5da0dd", "resolution": "success"}])
+```
+
+```javascript JavaScript
+await fetch('https://app.masonhub.co/{account}/api/v1/data_factory/resolveOrderCancel', {
+  method: 'POST',
+  headers: {'Authorization': 'Bearer your_jwt_token', 'Content-Type': 'application/json'},
+  body: JSON.stringify([{order_cancel_request_id: "0b744e29-b668-4486-85dd-82528b5da0dd", resolution: "success"}])
+});
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "success": true,
+  "data": [{"order_cancel_request_id": "0b744e29-b668-4486-85dd-82528b5da0dd", "resolution": "success"}]
+}
+```
+</ResponseExample>
+
+## Resolution Values
+
+- **success**: Cancellation applied successfully - order status changes to canceled
+- **failure**: Cancellation failed - order remains in current status
+
+## Use Cases
+
+Test order cancellation workflows and **orderCancelResolution** callback handling.

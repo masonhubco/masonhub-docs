@@ -1,0 +1,60 @@
+---
+title: 'Lose Inventory'
+description: 'Simulate inventory loss by moving units to lost status (Sandbox only)'
+api: 'POST /data_factory/loseInventory'
+---
+
+Simulate inventory loss by decrementing available inventory and incrementing lost status for testing.
+
+<Warning>
+DataFactory is only available in the sandbox environment.
+</Warning>
+
+## Request Body
+
+<ParamField body="sku_id" type="string" required>
+  MasonHub SKU UUID to lose inventory for.
+</ParamField>
+
+<ParamField body="quantity" type="integer" required>
+  Quantity of units to move from available to lost status.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/data_factory/loseInventory" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[{"sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af", "quantity": 10}]'
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/data_factory/loseInventory"
+response = requests.post(url,
+    headers={"Authorization": "Bearer your_jwt_token"},
+    json=[{"sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af", "quantity": 10}])
+```
+
+```javascript JavaScript
+await fetch('https://app.masonhub.co/{account}/api/v1/data_factory/loseInventory', {
+  method: 'POST',
+  headers: {'Authorization': 'Bearer your_jwt_token', 'Content-Type': 'application/json'},
+  body: JSON.stringify([{sku_id: "e5d00ff6-b34a-496e-9559-eb90e99463af", quantity: 10}])
+});
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "success": true,
+  "data": [{"sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af", "quantity_lost": 10}]
+}
+```
+</ResponseExample>
+
+## Use Cases
+
+Test inventory discrepancy handling, shortage scenarios, and callback processing.

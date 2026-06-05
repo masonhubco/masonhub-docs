@@ -1,0 +1,490 @@
+---
+title: 'RMA Events'
+description: 'Webhook event sent when return merchandise authorization (RMA) status changes or items are received'
+---
+
+RMA Events provide real-time updates on customer returns throughout the return lifecycle - from package tendering through final item processing. Track return shipments, receive notifications when returns arrive, and monitor restocking status.
+
+<Note>
+Returned items may be restocked as available, sent to quality control, or marked as damaged depending on their condition upon receipt.
+</Note>
+
+## Event Payload
+
+```json
+{
+  "callback_url": "https://client.com/api/rmaEvent",
+  "message_type": "rmaEvent",
+  "message_id": "0896116f-e54b-4756-9d3e-1b0c4a25d821",
+  "data": [
+    {
+      "id": "vf79fyn5-ec61-7892-ae7b-57a173b68133",
+      "customer_identifier": "rma123",
+      "package_id": "1z324897234nferg45",
+      "return_type": "rma_submitted_by_customer",
+      "status": "received",
+      "received_at": "2018-08-06T11:18:46Z",
+      "notes": "All items received in good condition",
+      "line_items": [
+        {
+          "customer_order_id": "54321",
+          "customer_sku_id": "shirts872340",
+          "quantity": 2,
+          "quantity_received": 2,
+          "return_reason_code": "tooBig",
+          "return_inventory_status": "available",
+          "not_on_original_rma": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Payload Fields
+
+<ResponseField name="callback_url" type="string">
+  Your registered webhook endpoint URL
+</ResponseField>
+
+<ResponseField name="message_type" type="string">
+  Always `rmaEvent` for this event type
+</ResponseField>
+
+<ResponseField name="message_id" type="string">
+  Unique identifier for this event. Use for idempotency checks.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of RMA status updates. Each record contains:
+
+  <Expandable title="RMA Data">
+    <ResponseField name="id" type="string">
+      MasonHub internal UUID for the RMA
+    </ResponseField>
+
+    <ResponseField name="customer_identifier" type="string">
+      Your RMA identifier
+    </ResponseField>
+
+    <ResponseField name="package_id" type="string">
+      Return package tracking number
+    </ResponseField>
+
+    <ResponseField name="return_type" type="string">
+      Type of return: `rma_submitted_by_customer`, `rma_submitted_by_client`, `unidentified_return`
+    </ResponseField>
+
+    <ResponseField name="status" type="string">
+      Current RMA status (see status values below)
+    </ResponseField>
+
+    <ResponseField name="received_at" type="string">
+      Timestamp when return was received (RFC3339)
+    </ResponseField>
+
+    <ResponseField name="notes" type="string">
+      Notes from warehouse team about the return condition
+    </ResponseField>
+
+    <ResponseField name="line_items" type="array">
+      Array of returned items
+
+      <Expandable title="Line Item Details">
+        <ResponseField name="customer_order_id" type="string">
+          Original order identifier
+        </ResponseField>
+
+        <ResponseField name="customer_sku_id" type="string">
+          Your SKU identifier
+        </ResponseField>
+
+        <ResponseField name="quantity" type="integer">
+          Expected return quantity from RMA
+        </ResponseField>
+
+        <ResponseField name="quantity_received" type="integer">
+          Actual quantity received
+        </ResponseField>
+
+        <ResponseField name="return_reason_code" type="string">
+          Reason for return (see reason codes below)
+        </ResponseField>
+
+        <ResponseField name="return_inventory_status" type="string">
+          Inventory status after inspection: `available`, `quality-control`, `damaged`, `disposed`
+        </ResponseField>
+
+        <ResponseField name="not_on_original_rma" type="boolean">
+          True if item was returned but not on original RMA
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## RMA Status Values
+
+<Steps>
+  <Step title="tendered">
+    Return package tendered to carrier by customer
+  </Step>
+  <Step title="inTransit">
+    Return package in transit to warehouse
+  </Step>
+  <Step title="delivered">
+    Return package delivered to warehouse dock
+  </Step>
+  <Step title="received">
+    Return items inspected and processed into inventory
+  </Step>
+  <Step title="undeliverable">
+    Return package undeliverable (wrong address, refused, etc.)
+  </Step>
+</Steps>
+
+## Return Types
+
+<CardGroup cols={3}>
+  <Card title="Customer Submitted" icon="user">
+    `rma_submitted_by_customer` - Customer initiated return via your system
+  </Card>
+  <Card title="Client Submitted" icon="building">
+    `rma_submitted_by_client` - You initiated return on customer's behalf
+  </Card>
+  <Card title="Unidentified" icon="question">
+    `unidentified_return` - Package arrived without prior RMA
+  </Card>
+</CardGroup>
+
+## Return Reason Codes
+
+| Code | Description | Typical Disposition |
+|------|-------------|---------------------|
+| `tooBig` | Item too large | Available for resale |
+| `tooSmall` | Item too small | Available for resale |
+| `wrongItem` | Wrong item received | Available for resale |
+| `defective` | Item defective | Quality control/damaged |
+| `notAsDescribed` | Not as described | Quality control |
+| `arrivedLate` | Arrived too late | Available for resale |
+| `noLongerNeeded` | Customer changed mind | Available for resale |
+| `damagedInShipping` | Damaged during shipping | Damaged/disposed |
+
+## Inventory Status After Return
+
+<CardGroup cols={2}>
+  <Card title="Available" icon="circle-check">
+    Item in sellable condition - added to available inventory
+  </Card>
+  <Card title="Quality Control" icon="magnifying-glass">
+    Item needs inspection before resale decision
+  </Card>
+  <Card title="Damaged" icon="triangle-exclamation">
+    Item damaged - not available for sale
+  </Card>
+  <Card title="Disposed" icon="trash">
+    Item disposed due to condition or regulations
+  </Card>
+</CardGroup>
+
+## Example Scenarios
+
+### Full Return - All Items Restocked
+
+```json
+{
+  "status": "received",
+  "line_items": [
+    {
+      "customer_order_id": "54321",
+      "customer_sku_id": "shirts872340",
+      "quantity": 2,
+      "quantity_received": 2,
+      "return_reason_code": "tooBig",
+      "return_inventory_status": "available",
+      "not_on_original_rma": false
+    }
+  ]
+}
+```
+
+### Partial Return - Some Items Damaged
+
+```json
+{
+  "status": "received",
+  "line_items": [
+    {
+      "customer_order_id": "54321",
+      "customer_sku_id": "shirts872340",
+      "quantity": 2,
+      "quantity_received": 2,
+      "return_reason_code": "defective",
+      "return_inventory_status": "damaged",
+      "not_on_original_rma": false
+    }
+  ],
+  "notes": "Both items have visible stains, cannot be resold"
+}
+```
+
+### Unexpected Item in Return
+
+```json
+{
+  "status": "received",
+  "line_items": [
+    {
+      "customer_order_id": "54321",
+      "customer_sku_id": "shirts872340",
+      "quantity": 1,
+      "quantity_received": 1,
+      "return_reason_code": "wrongItem",
+      "return_inventory_status": "available",
+      "not_on_original_rma": false
+    },
+    {
+      "customer_order_id": "54321",
+      "customer_sku_id": "pants9876",
+      "quantity": 0,
+      "quantity_received": 1,
+      "return_reason_code": "noLongerNeeded",
+      "return_inventory_status": "quality-control",
+      "not_on_original_rma": true
+    }
+  ]
+}
+```
+
+## Implementation Example
+
+```python Python
+@app.route('/api/rmaEvent', methods=['POST'])
+def handle_rma_event():
+    try:
+        payload = request.get_json()
+        message_id = payload['message_id']
+
+        # Check if already processed
+        if is_message_processed(message_id):
+            return 'OK', 200
+
+        # Process each RMA update
+        for rma in payload['data']:
+            rma_id = rma['customer_identifier']
+            status = rma['status']
+            tracking = rma.get('package_id')
+
+            # Update RMA status
+            update_rma_status(rma_id, status)
+
+            if status == 'tendered':
+                logger.info(f"RMA {rma_id} tendered to carrier")
+
+            elif status == 'inTransit':
+                logger.info(f"RMA {rma_id} in transit")
+                notify_customer_return_in_transit(rma_id)
+
+            elif status == 'delivered':
+                logger.info(f"RMA {rma_id} delivered to warehouse")
+
+            elif status == 'received':
+                # Process returned items
+                line_items = rma.get('line_items', [])
+                notes = rma.get('notes', '')
+
+                for item in line_items:
+                    order_id = item['customer_order_id']
+                    sku = item['customer_sku_id']
+                    expected = item['quantity']
+                    received = item['quantity_received']
+                    reason = item['return_reason_code']
+                    inv_status = item['return_inventory_status']
+                    unexpected = item['not_on_original_rma']
+
+                    # Update inventory based on status
+                    if inv_status == 'available':
+                        # Add to sellable inventory
+                        restock_inventory(sku, received)
+                        logger.info(f"Restocked {received} units of {sku}")
+
+                    elif inv_status == 'damaged':
+                        # Mark as damaged, don't add to available
+                        mark_inventory_damaged(sku, received)
+                        logger.warning(f"{received} units of {sku} marked damaged")
+
+                    elif inv_status == 'quality-control':
+                        # Hold for QC decision
+                        hold_for_quality_control(sku, received)
+
+                    # Process refund
+                    if inv_status in ['available', 'quality-control']:
+                        process_refund(order_id, sku, received)
+
+                    # Check for discrepancies
+                    if received < expected:
+                        log_rma_shortage(rma_id, sku, expected - received)
+
+                    if unexpected:
+                        log_unexpected_return(rma_id, sku, received)
+
+                # Notify customer
+                notify_customer_return_processed(rma_id)
+                logger.info(f"RMA {rma_id} processing complete")
+
+            elif status == 'undeliverable':
+                logger.error(f"RMA {rma_id} undeliverable")
+                notify_customer_return_failed(rma_id)
+
+        mark_message_processed(message_id)
+        return 'OK', 200
+
+    except Exception as e:
+        logger.error(f"RMA event webhook error: {e}")
+        return 'Error', 500
+```
+
+```javascript JavaScript
+app.post('/api/rmaEvent', async (req, res) => {
+  try {
+    const payload = req.body;
+    const messageId = payload.message_id;
+
+    // Check if already processed
+    if (await isMessageProcessed(messageId)) {
+      return res.status(200).send('OK');
+    }
+
+    // Process each RMA update
+    for (const rma of payload.data) {
+      const rmaId = rma.customer_identifier;
+      const status = rma.status;
+
+      // Update RMA status
+      await updateRMAStatus(rmaId, status);
+
+      if (status === 'tendered') {
+        console.log(`RMA ${rmaId} tendered to carrier`);
+
+      } else if (status === 'inTransit') {
+        console.log(`RMA ${rmaId} in transit`);
+        await notifyCustomerReturnInTransit(rmaId);
+
+      } else if (status === 'delivered') {
+        console.log(`RMA ${rmaId} delivered to warehouse`);
+
+      } else if (status === 'received') {
+        // Process returned items
+        const lineItems = rma.line_items || [];
+
+        for (const item of lineItems) {
+          const orderId = item.customer_order_id;
+          const sku = item.customer_sku_id;
+          const received = item.quantity_received;
+          const invStatus = item.return_inventory_status;
+
+          // Update inventory based on status
+          if (invStatus === 'available') {
+            await restockInventory(sku, received);
+            console.log(`Restocked ${received} units of ${sku}`);
+
+          } else if (invStatus === 'damaged') {
+            await markInventoryDamaged(sku, received);
+            console.warn(`${received} units of ${sku} marked damaged`);
+
+          } else if (invStatus === 'quality-control') {
+            await holdForQualityControl(sku, received);
+          }
+
+          // Process refund
+          if (['available', 'quality-control'].includes(invStatus)) {
+            await processRefund(orderId, sku, received);
+          }
+
+          // Check for unexpected items
+          if (item.not_on_original_rma) {
+            await logUnexpectedReturn(rmaId, sku, received);
+          }
+        }
+
+        // Notify customer
+        await notifyCustomerReturnProcessed(rmaId);
+        console.log(`RMA ${rmaId} processing complete`);
+
+      } else if (status === 'undeliverable') {
+        console.error(`RMA ${rmaId} undeliverable`);
+        await notifyCustomerReturnFailed(rmaId);
+      }
+    }
+
+    await markMessageProcessed(messageId);
+    res.status(200).send('OK');
+
+  } catch (error) {
+    console.error('RMA event webhook error:', error);
+    res.status(500).send('Error');
+  }
+});
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Refund Processing" icon="dollar-sign">
+    Trigger refunds only after items are received and inspected
+  </Card>
+  <Card title="Inventory Management" icon="boxes-stacked">
+    Automatically restock sellable returns to available inventory
+  </Card>
+  <Card title="Customer Communication" icon="envelope">
+    Keep customers informed of return status and refund timeline
+  </Card>
+  <Card title="Quality Tracking" icon="chart-line">
+    Monitor return reasons and damage rates to identify product issues
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Conditional Refunds" icon="shield-check">
+    Only process refunds after items are received and pass inspection
+  </Card>
+  <Card title="Inventory Accuracy" icon="check-double">
+    Update inventory based on actual `return_inventory_status`, not just receipt
+  </Card>
+  <Card title="Customer Updates" icon="bell">
+    Proactively notify customers at each status milestone
+  </Card>
+  <Card title="Return Analytics" icon="magnifying-glass-chart">
+    Track return reasons to identify product or description issues
+  </Card>
+</CardGroup>
+
+<Warning>
+Never process refunds before receiving the `received` status. Items may be undeliverable, damaged, or not match the RMA.
+</Warning>
+
+## Refund Decision Matrix
+
+| Inventory Status | Refund Policy | Typical Action |
+|-----------------|---------------|----------------|
+| `available` | Full refund | Process immediately |
+| `quality-control` | Pending inspection | Hold refund until QC complete |
+| `damaged` | Partial/no refund | Customer damaged - may deny refund |
+| `disposed` | No refund | Item unsellable due to customer |
+
+## Response Requirements
+
+Your webhook endpoint must:
+
+1. **Respond within 30 seconds** - Return HTTP 200 to acknowledge receipt
+2. **Handle all statuses** - Support all RMA status transitions
+3. **Process conditionally** - Only restock/refund based on inventory status
+4. **Track discrepancies** - Monitor expected vs received quantities
+
+## Related Events
+
+- [Order Events](/api-reference/callback-events/order-events) - Original order that's being returned
+- [SKU Inventory Change Event](/api-reference/callback-events/sku-inventory-change-event) - Inventory updates when returns are restocked
+- [Order Cancel Resolutions](/api-reference/callback-events/order-cancel-resolutions) - Failed cancellations often lead to RMAs

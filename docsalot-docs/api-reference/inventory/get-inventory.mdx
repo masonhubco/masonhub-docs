@@ -1,0 +1,189 @@
+---
+title: 'Get SKU Inventory Snapshot'
+description: 'Retrieve current inventory counts for specified SKUs across all distribution centers'
+api: 'GET /sku-snapshots'
+---
+
+The Inventory API provides real-time inventory tracking and snapshot capabilities across all distribution centers. It supports various inventory statuses, detailed location breakdowns, and automatic inventory change notifications.
+
+<Note>
+Use callbacks for real-time inventory updates rather than frequent polling to optimize performance and stay current with inventory changes.
+</Note>
+
+Retrieve real-time inventory levels for specified SKUs across all locations and statuses. This endpoint provides current inventory counts with detailed breakdowns by location and status.
+
+
+## Query Parameters
+
+<ParamField query="cid" type="string[]" required>
+  Customer SKU identifiers. Supports batching 1-30 identifiers per request.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="30">
+  Number of results to return. Range: 1-100.
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Pagination offset for retrieving subsequent pages of results.
+</ParamField>
+
+<ParamField query="include_ledger" type="boolean" default="true">
+  Include detailed inventory breakdown by location and status.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://app.masonhub.co/{account}/api/v1/sku_snapshots?cid=pants4523,shirts872340&limit=50" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/sku_snapshots"
+headers = {
+    "Authorization": "Bearer your_jwt_token"
+}
+params = {
+    "cid": "pants4523,shirts872340",
+    "limit": 50
+}
+
+response = requests.get(url, headers=headers, params=params)
+data = response.json()
+```
+
+```javascript JavaScript
+const params = new URLSearchParams({
+  cid: 'pants4523,shirts872340',
+  limit: '50'
+});
+
+const response = await fetch(`https://app.masonhub.co/{account}/api/v1/sku_snapshots?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "include_ledger": true,
+  "limit": 30,
+  "offset": 0,
+  "data": [
+    {
+      "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      "customer_identifier": "10000",
+      "total_units": 200,
+      "total_available_to_sell": 100,
+      "as_of": "2018-11-18T00:43:23.095637Z",
+      "status_counts": [
+        {
+          "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+          "inventory_location_address": "MasonHub - Rancho Cucamonga | 8595 Milliken Avenue, B102 Rancho Cucamonga, CA 91730",
+          "inventory_status": "available",
+          "quantity": 100,
+          "as_of": "2018-11-18T00:43:22.664965Z"
+        },
+        {
+          "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+          "inventory_location_address": "MasonHub - Rancho Cucamonga | 8595 Milliken Avenue, B102 Rancho Cucamonga, CA 91730",
+          "inventory_status": "expected",
+          "quantity": 50,
+          "as_of": "2018-11-18T00:43:22.664965Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json 400 Bad Request
+{
+  "error": {
+    "code": "INVALID_SKU_LIMIT",
+    "message": "Maximum 30 customer identifiers allowed per request"
+  }
+}
+```
+</ResponseExample>
+
+## Inventory Status Types
+
+The response includes inventory broken down by status:
+
+<CardGroup cols={2}>
+  <Card title="Sellable Inventory" icon="check-circle">
+    - **available**: Ready for sale and allocation
+    - **expected**: Incoming from inbound shipments
+    - **received**: Recently received, being processed
+  </Card>
+  <Card title="Quality Control" icon="search">
+    - **quality-control**: Under inspection
+    - **refurbishing**: Being repaired/refurbished
+    - **under-investigation**: Status being determined
+  </Card>
+  <Card title="Processing States" icon="cog">
+    - **in-receiving**: Currently being processed
+    - **allocated**: Reserved for orders
+    - **picked**: Retrieved for shipment
+  </Card>
+  <Card title="Unavailable" icon="xmark">
+    - **damaged**: Requires disposition
+    - **lost**: Cannot be located
+    - **expired**: Past expiration date
+  </Card>
+</CardGroup>
+
+## Inventory Calculations
+
+### Total Units
+Sum of all inventory across all statuses and locations for a SKU.
+
+### Total Available to Sell
+Inventory that can be allocated to new orders:
+
+```
+Available to Sell = Available + Expected + Received
+```
+
+### Kit Inventory
+For kit SKUs, inventory calculations automatically consider:
+- Pre-built kit quantities 
+- Component availability for kit-to-ship
+- Mixed inventory scenarios
+
+## Batch Queries
+
+Query multiple SKUs in a single request:
+
+```bash
+GET /sku_snapshots?cid=sku001,sku002,sku003&limit=50
+```
+
+<Warning>
+Maximum 30 customer identifiers per request. Exceeding this limit will result in a 400 error.
+</Warning>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Callbacks" icon="bell">
+    Subscribe to `skuInventoryChange` callbacks for real-time updates instead of polling.
+  </Card>
+  <Card title="Batch Queries" icon="layer-group">
+    Query multiple SKUs in single requests when possible for efficiency.
+  </Card>
+  <Card title="Understand Statuses" icon="list-check">
+    Know which statuses contribute to available-to-sell quantities for your business rules.
+  </Card>
+  <Card title="Include Ledger" icon="book">
+    Use `include_ledger=true` to get location-specific breakdowns when needed.
+  </Card>
+</CardGroup>

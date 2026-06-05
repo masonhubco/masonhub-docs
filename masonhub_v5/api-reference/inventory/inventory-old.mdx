@@ -1,0 +1,594 @@
+---
+title: 'Inventory Management'
+description: 'Real-time inventory tracking, snapshots, and multi-location inventory status monitoring'
+---
+
+
+
+
+The Inventory API provides real-time inventory tracking and snapshot capabilities across all distribution centers. It supports various inventory statuses, detailed location breakdowns, and automatic inventory change notifications.
+
+<Note>
+Use callbacks for real-time inventory updates rather than frequent polling to optimize performance and stay current with inventory changes.
+</Note>
+
+## Core Operations
+
+### Get SKU Inventory
+
+<api-endpoint method="GET" url="/inventory" />
+
+Retrieve real-time inventory levels across all locations and statuses.
+
+<ParamField query="cid" type="array" required>
+  Customer SKU identifiers (1-30 items)
+</ParamField>
+
+<ParamField query="limit" type="integer" default="30">
+  Number of results (1-100)
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Pagination offset
+</ParamField>
+
+<ParamField query="include_ledger" type="boolean" default="true">
+  Include detailed inventory breakdown by location
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://app.masonhub.co/{account}/api/v1/inventory?cid=pants4523,shirts872340&limit=50" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/inventory"
+headers = {
+    "Authorization": "Bearer your_jwt_token"
+}
+params = {
+    "cid": "pants4523,shirts872340",
+    "limit": 50
+}
+
+response = requests.get(url, headers=headers, params=params)
+data = response.json()
+```
+
+```javascript JavaScript
+const params = new URLSearchParams({
+  cid: 'pants4523,shirts872340',
+  limit: '50'
+});
+
+const response = await fetch(`https://app.masonhub.co/{account}/api/v1/inventory?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "include_ledger": true,
+  "limit": 30,
+  "offset": 0,
+  "data": [
+    {
+      "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      "customer_identifier": "10000",
+      "total_units": 200,
+      "total_available_to_sell": 100,
+      "as_of": "2018-11-18T00:43:23.095637Z",
+      "status_counts": [
+        {
+          "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+          "inventory_location_address": "MasonHub - Rancho Cucamonga | 8595 Milliken Avenue, B102 Rancho Cucamonga, CA 91730",
+          "inventory_status": "available",
+          "quantity": 100,
+          "as_of": "2018-11-18T00:43:22.664965Z"
+        },
+        {
+          "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+          "inventory_location_address": "MasonHub - Rancho Cucamonga | 8595 Milliken Avenue, B102 Rancho Cucamonga, CA 91730",
+          "inventory_status": "expected",
+          "quantity": 50,
+          "as_of": "2018-11-18T00:43:22.664965Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json 400 Bad Request
+{
+  "error": {
+    "code": "INVALID_SKU_LIMIT",
+    "message": "Maximum 30 customer identifiers allowed per request"
+  }
+}
+```
+</ResponseExample>
+
+#### Query Parameters
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `cid` | array of strings | Customer identifiers [1..30] | - |
+| `limit` | integer | Number of results [1..100] | 30 |
+| `offset` | integer | Pagination offset | 0 |
+
+### Request Full Snapshot
+
+<api-endpoint method="POST" url="/inventory_snapshots" />
+
+For large datasets or bulk operations, use asynchronous snapshots:
+
+<ParamField body="snapshot_type" type="string" required>
+  Type of snapshot: "full" or "delta"
+</ParamField>
+
+<ParamField body="snapshot_as_of_date" type="string">
+  Point-in-time for snapshot (RFC3339)
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/inventory_snapshots" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "snapshot_type": "full",
+    "snapshot_as_of_date": "2019-08-05T08:15:30-07:00"
+  }'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/inventory_snapshots"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = {
+    "snapshot_type": "full",
+    "snapshot_as_of_date": "2019-08-05T08:15:30-07:00"
+}
+
+response = requests.post(url, headers=headers, data=json.dumps(data))
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/inventory_snapshots', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    snapshot_type: "full",
+    snapshot_as_of_date: "2019-08-05T08:15:30-07:00"
+  })
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "snapshot_request_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "processing",
+  "estimated_completion": "2019-08-05T08:20:30-07:00"
+}
+```
+
+```json 400 Error
+{
+  "error": {
+    "code": "INVALID_SNAPSHOT_TYPE",
+    "message": "Snapshot type must be 'full' or 'delta'"
+  }
+}
+```
+</ResponseExample>
+  "estimated_completion": "2019-08-05T08:20:30-07:00"
+}
+```
+</CodeGroup>
+
+<Warning>
+Full snapshots are processed asynchronously. Monitor for **SnapshotReady** callbacks containing download links.
+</Warning>
+
+### Get Inventory Locations
+
+```http
+GET /{accountSlug}/inventory_locations
+Authorization: Bearer your_jwt_token
+```
+
+## Inventory Status Types
+
+<CardGroup cols={2}>
+  <Card
+    title="Sellable Inventory"
+    icon="check-circle"
+    color="#10b981"
+  >
+    **available**: Ready for sale and allocation
+    
+    **expected**: Incoming from inbound shipments
+    
+    **received**: Recently received, being processed
+  </Card>
+  <Card
+    title="Quality Control"
+    icon="search"
+    color="#f59e0b"
+  >
+    **quality-control**: Under inspection
+    
+    **refurbishing**: Being repaired/refurbished
+    
+    **under-investigation**: Status being determined
+  </Card>
+  <Card
+    title="Processing States"
+    icon="cog"
+    color="#3b82f6"
+  >
+    **in-receiving**: Currently being processed
+    
+    **allocated**: Reserved for orders
+    
+    **picked**: Retrieved for shipment
+  </Card>
+  <Card
+    title="Unavailable"
+    icon="times-circle"
+    color="#ef4444"
+  >
+    **damaged**: Requires disposition
+    
+    **lost**: Cannot be located
+    
+    **expired**: Past expiration date
+  </Card>
+</CardGroup>
+
+## Inventory Calculations
+
+### Total Available to Sell
+
+The key metric for order allocation:
+
+<Tabs>
+  <Tab title="Standard Calculation">
+    ```
+    Available to Sell = Available + Expected + Received
+    ```
+    
+    Includes inventory ready for immediate allocation plus incoming stock that can be promised to orders.
+  </Tab>
+  <Tab title="Kit SKU Calculation">
+    ```
+    Kit Available = MIN(
+      Pre-built Kit Units,
+      Component 1 Available / Required Qty,
+      Component 2 Available / Required Qty,
+      ...
+    )
+    ```
+    
+    Considers both pre-built kits and component availability for kit-to-ship scenarios.
+  </Tab>
+</Tabs>
+
+### Multi-Location Aggregation
+
+<Steps>
+  <Step title="Location-Level Counts">
+    Inventory tracked separately by distribution center
+  </Step>
+  <Step title="Status Aggregation">
+    Each location provides status-specific breakdowns
+  </Step>
+  <Step title="Total Calculation">
+    System aggregates across all locations for total counts
+  </Step>
+  <Step title="Available Calculation">
+    Only sellable statuses contribute to available-to-sell
+  </Step>
+</Steps>
+
+## Real-time Updates
+
+### Inventory Change Callbacks
+
+Receive **skuInventoryChange** callbacks for real-time updates:
+
+<CodeGroup>
+```json Standard Update
+{
+  "callback_url": "https://client.com/api/inventory_event",
+  "message_type": "skuInventoryChange",
+  "message_id": "e58769ec-c4cf-47f9-b80a-378a9b85aeae",
+  "data": [
+    {
+      "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      "customer_identifier": "10000",
+      "total_units": 200,
+      "total_available_to_sell": 100,
+      "as_of": "2018-11-18T00:43:23.095637Z",
+      "change_reason": "order_allocation",
+      "status_counts": [
+        {
+          "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+          "inventory_location_address": "MasonHub - Rancho Cucamonga",
+          "inventory_status": "available",
+          "quantity": 75,
+          "previous_quantity": 100,
+          "as_of": "2018-11-18T00:43:22.664965Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json Multi-Location Update
+{
+  "callback_url": "https://client.com/api/inventory_event",
+  "message_type": "skuInventoryChange",
+  "message_id": "e58769ec-c4cf-47f9-b80a-378a9b85aeae",
+  "data": [
+    {
+      "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      "customer_identifier": "10000",
+      "total_units": 300,
+      "total_available_to_sell": 250,
+      "as_of": "2018-11-18T00:43:23.095637Z",
+      "change_reason": "inbound_received",
+      "status_counts": [
+        {
+          "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+          "inventory_location_address": "MasonHub - Rancho Cucamonga",
+          "inventory_status": "available",
+          "quantity": 150,
+          "as_of": "2018-11-18T00:43:22.664965Z"
+        },
+        {
+          "inventory_location_id": "af8cc627-de63-9061-3b9c-0119e0092e04",
+          "inventory_location_address": "MasonHub - Atlanta",
+          "inventory_status": "available", 
+          "quantity": 100,
+          "as_of": "2018-11-18T00:43:22.664965Z"
+        }
+      ]
+    }
+  ]
+}
+```
+</CodeGroup>
+
+### Snapshot Ready Callbacks
+
+Receive **SnapshotReady** callbacks when full snapshots complete:
+
+```json
+{
+  "callback_url": "https://client.com/api/snapshot_ready",
+  "message_type": "SnapshotReady",
+  "message_id": "f68870ed-d5dc-48g0-c81b-489b0c96bfbf",
+  "data": {
+    "snapshot_request_id": "550e8400-e29b-41d4-a716-446655440000",
+    "snapshot_type": "full",
+    "snapshot_as_of_date": "2019-08-05T08:15:30-07:00",
+    "download_url": "https://secure.masonhub.com/snapshots/download/abc123",
+    "expires_at": "2019-08-05T20:15:30-07:00",
+    "record_count": 15420
+  }
+}
+```
+
+## Advanced Features
+
+### Kit Inventory Tracking
+
+<Accordion title="Pre-built Kits">
+  **Characteristics:**
+  - Tracked as single inventory units
+  - Components unavailable individually
+  - Fast pick and ship processing
+  
+  **Inventory Display:**
+  ```json
+  {
+    "customer_identifier": "kit-001",
+    "total_units": 50,
+    "total_available_to_sell": 50,
+    "kit_type": "pre-built"
+  }
+  ```
+</Accordion>
+
+<Accordion title="Kit-to-Ship">
+  **Characteristics:**
+  - Components tracked individually
+  - Available quantity based on limiting component
+  - Flexible inventory allocation
+  
+  **Inventory Display:**
+  ```json
+  {
+    "customer_identifier": "kit-002",
+    "total_units": 25,
+    "total_available_to_sell": 20,
+    "kit_type": "kit-to-ship",
+    "limiting_component": "component-b"
+  }
+  ```
+</Accordion>
+
+### Location-Specific Operations
+
+<CardGroup cols={2}>
+  <Card
+    title="Multi-DC Distribution"
+    icon="warehouse"
+  >
+    Inventory automatically distributed across multiple distribution centers based on:
+    - Geographic optimization
+    - Capacity constraints
+    - Customer proximity
+  </Card>
+  <Card
+    title="Location-Specific Queries"
+    icon="map-marker-alt"
+  >
+    Filter inventory by specific locations:
+    ```
+    GET /inventory?cid=sku001&location_id=uuid
+    ```
+  </Card>
+</CardGroup>
+
+### Inventory Adjustments
+
+Track all inventory movements with detailed audit trails:
+
+```json
+{
+  "adjustment_reason": "cycle_count_adjustment",
+  "previous_quantity": 100,
+  "new_quantity": 95,
+  "adjustment_quantity": -5,
+  "adjusted_by": "warehouse_user_123",
+  "adjustment_notes": "Physical count variance"
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card
+    title="Real-time Updates"
+    icon="bolt"
+  >
+    Use callbacks for inventory changes rather than frequent polling to reduce API load and get immediate updates
+  </Card>
+  <Card
+    title="Batch Queries"
+    icon="layer-group"
+  >
+    Query multiple SKUs in single requests (up to 30) for better performance and reduced rate limiting
+  </Card>
+  <Card
+    title="Snapshot Strategy"
+    icon="camera"
+  >
+    Use full snapshots for:
+    - Initial system synchronization
+    - End-of-day reporting
+    - Bulk reconciliation processes
+  </Card>
+  <Card
+    title="Status Understanding"
+    icon="info-circle"
+  >
+    Understand which statuses contribute to available-to-sell calculations for accurate order promising
+  </Card>
+</CardGroup>
+
+### Performance Optimization
+
+1. **Callback Processing**: Design callback handlers to process inventory updates quickly
+2. **Status Filtering**: Focus on sellable statuses for order management systems
+3. **Location Awareness**: Consider location-specific inventory for regional fulfillment
+4. **Kit Complexity**: Account for kit component dependencies in availability calculations
+
+## Error Handling
+
+Common scenarios and solutions:
+
+<Accordion title="SKU Not Found">
+  **Error**: `SKU_NOT_FOUND`
+  
+  **Cause**: Requested SKU doesn't exist in catalog
+  
+  **Solution**: Verify SKU customer identifier exists before querying inventory
+</Accordion>
+
+<Accordion title="Location Access Denied">
+  **Error**: `LOCATION_ACCESS_DENIED`
+  
+  **Cause**: Account doesn't have access to requested location
+  
+  **Solution**: Query inventory without location filter or verify access permissions
+</Accordion>
+
+<Accordion title="Snapshot Processing Failed">
+  **Error**: `SNAPSHOT_GENERATION_FAILED`
+  
+  **Cause**: Large dataset or system capacity issues
+  
+  **Solution**: Retry with smaller date range or contact support for large datasets
+</Accordion>
+
+## Integration Patterns
+
+### E-commerce Integration
+
+```javascript
+// Real-time inventory sync
+function handleInventoryChange(callback) {
+  const { sku_id, customer_identifier, total_available_to_sell } = callback.data[0];
+  
+  // Update product availability
+  updateProductAvailability(customer_identifier, total_available_to_sell);
+  
+  // Trigger out-of-stock notifications if needed
+  if (total_available_to_sell === 0) {
+    notifyOutOfStock(customer_identifier);
+  }
+}
+```
+
+### ERP Synchronization
+
+```javascript
+// Daily inventory reconciliation
+async function dailyInventorySync() {
+  // Request full snapshot
+  const snapshot = await requestFullSnapshot();
+  
+  // Process when ready
+  const inventoryData = await downloadSnapshot(snapshot.download_url);
+  
+  // Reconcile with ERP system
+  await reconcileWithERP(inventoryData);
+}
+```
+
+## Next Steps
+
+After implementing inventory management, explore:
+
+- [Inbound Shipments](/api/inbound-shipments) for receiving inventory
+- [Order Management](/api/orders) for allocation and fulfillment
+- [Catalog Management](/api/catalog) for SKU configuration

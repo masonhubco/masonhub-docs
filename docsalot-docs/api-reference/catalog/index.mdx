@@ -1,0 +1,584 @@
+---
+title: 'Catalog Management'
+description: 'SKU management, product information, and catalog operations'
+api: 'GET /skus'
+---
+
+# Catalog Management API
+
+The Catalog API manages SKUs (Stock Keeping Units), which are the primary catalog items in the MasonHub system. SKUs provide comprehensive product information and support complex scenarios like kits, multiple barcodes, and special handling requirements.
+
+<Note>
+SKUs are never fully removed from the system if inventory exists, ensuring data integrity and historical tracking.
+</Note>
+
+## Core Endpoints
+
+### Get SKUs
+
+<api-endpoint method="GET" url="/skus" />
+
+Retrieve SKUs with filtering and pagination support.
+
+<ParamField query="cid" type="string[]">
+  Customer identifiers [1..30]
+</ParamField>
+
+<ParamField query="id" type="UUID[]">
+  MasonHub UUID strings [1..30]
+</ParamField>
+
+<ParamField query="list_type" type="string" default="detail">
+  Response detail level: `detail` or `summary`
+</ParamField>
+
+<ParamField query="limit" type="integer" default="30">
+  Number of results [1..100]
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Pagination offset
+</ParamField>
+
+<ParamField query="include_counts" type="boolean" default="false">
+  Include inventory counts (detail only)
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://app.masonhub.co/{account}/api/v1/skus?cid=pants4523&list_type=detail&include_counts=true" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/skus"
+headers = {
+    "Authorization": "Bearer your_jwt_token"
+}
+params = {
+    "cid": "pants4523",
+    "list_type": "detail",
+    "include_counts": True
+}
+
+response = requests.get(url, headers=headers, params=params)
+data = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/skus?cid=pants4523&list_type=detail&include_counts=true', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "include_counts": true,
+  "limit": 10,
+  "list_type": "detail", 
+  "offset": 0,
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "customer_identifier": "pants4523",
+      "customer_bar_code": "2345687902",
+      "brand_name": "Freddie's Pants",
+      "product_name": "Fancy Pants",
+      "available_quantity": 150,
+      "allocated_quantity": 25
+    }
+  ]
+}
+```
+</ResponseExample>
+| `limit` | integer | Number of results [1..100] | 30 |
+| `offset` | integer | Pagination offset | 0 |
+| `include_counts` | boolean | Include inventory counts (detail only) | false |
+
+### Create SKUs
+
+<api-endpoint method="POST" url="/skus" />
+
+Create one or more SKUs in the catalog system.
+
+<ParamField body="customer_identifier" type="string" required>
+  Unique customer SKU identifier
+</ParamField>
+
+<ParamField body="customer_bar_code" type="string" required>
+  Primary customer-assigned barcode
+</ParamField>
+
+<ParamField body="vendor_bar_code" type="string">
+  Vendor's original barcode
+</ParamField>
+
+<ParamField body="brand_name" type="string" required>
+  Brand name for the product
+</ParamField>
+
+<ParamField body="product_name" type="string" required>
+  Product name/title
+</ParamField>
+
+<ParamField body="product_category" type="string" required>
+  Product category classification
+</ParamField>
+
+<ParamField body="dim_weight" type="number" required>
+  Weight in pounds
+</ParamField>
+
+<ParamField body="dim_length" type="number" required>
+  Length in inches
+</ParamField>
+
+<ParamField body="dim_width" type="number" required>
+  Width in inches
+</ParamField>
+
+<ParamField body="dim_height" type="number" required>
+  Height in inches
+</ParamField>
+
+<ParamField body="unit_cost" type="number">
+  Unit cost for the SKU
+</ParamField>
+
+<ParamField body="price" type="number">
+  Retail price for the SKU
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/skus" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "pants4523",
+      "customer_bar_code": "2345687902", 
+      "vendor_bar_code": "39485627389",
+      "brand_name": "Freddies Pants",
+      "product_name": "Fancy Pants",
+      "product_category": "Apparel",
+      "dim_weight": 0.75,
+      "dim_length": 4,
+      "dim_width": 2.2, 
+      "dim_height": 0.5,
+      "unit_cost": 80,
+      "price": 160
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/skus"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    {
+        "customer_identifier": "pants4523",
+        "customer_bar_code": "2345687902",
+        "vendor_bar_code": "39485627389",
+        "brand_name": "Freddies Pants",
+        "product_name": "Fancy Pants",
+        "product_category": "Apparel",
+        "dim_weight": 0.75,
+        "dim_length": 4,
+        "dim_width": 2.2,
+        "dim_height": 0.5,
+        "unit_cost": 80,
+        "price": 160
+    }
+]
+
+response = requests.post(url, headers=headers, data=json.dumps(data))
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/skus', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      customer_identifier: "pants4523",
+      customer_bar_code: "2345687902",
+      vendor_bar_code: "39485627389",
+      brand_name: "Freddies Pants",
+      product_name: "Fancy Pants",
+      product_category: "Apparel",
+      dim_weight: 0.75,
+      dim_length: 4,
+      dim_width: 2.2,
+      dim_height: 0.5,
+      unit_cost: 80,
+      price: 160
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 1,
+  "records_processed": 1,
+  "records_failed": 0,
+  "records_succeeded": 1,
+  "results": [
+    {
+      "system_id": "550e8400-e29b-41d4-a716-446655440000",
+      "customer_identifier": "pants4523",
+      "status": "success"
+    }
+  ]
+}
+```
+
+```json 400 Validation Error
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Required field missing",
+    "details": {
+      "field": "customer_identifier",
+      "value": null
+    }
+  }
+}
+```
+</ResponseExample>
+
+#### Required Fields
+
+<CardGroup cols={2}>
+  <Card
+    title="Identification"
+    icon="id-card"
+  >
+    - `customer_identifier`
+    - `customer_bar_code`
+    - `vendor_style`
+  </Card>
+  <Card
+    title="Product Information"
+    icon="tag"
+  >
+    - `brand_name`
+    - `product_name`
+    - `product_category`
+  </Card>
+  <Card
+    title="Physical Dimensions"
+    icon="ruler"
+  >
+    - `dim_weight`
+    - `dim_length`
+    - `dim_width`
+    - `dim_height`
+  </Card>
+  <Card
+    title="Optional Fields"
+    icon="plus-circle"
+  >
+    - `unit_cost`
+    - `price`
+    - `pick_style`
+    - `special_instructions`
+  </Card>
+</CardGroup>
+
+### Update SKUs
+
+<Note>
+SKU updates require full object replacement. Include all fields you want to maintain.
+</Note>
+
+```http
+PUT /skus
+Authorization: Bearer your_jwt_token
+Content-Type: application/json
+
+[
+  {
+    "customer_identifier": "pants4523",
+    "customer_bar_code": "2345687902",
+    // ... all other fields
+    "price": 180  // Updated price
+  }
+]
+```
+
+### Delete SKUs
+
+```http
+DELETE /skus
+Authorization: Bearer your_jwt_token
+Content-Type: application/json
+
+[
+  {
+    "customer_identifier": "pants4523"
+  },
+  {
+    "customer_identifier": "shirts450293" 
+  }
+]
+```
+
+## Advanced Features
+
+### Kit SKUs
+
+MasonHub supports complex kit configurations for bundled products:
+
+<Tabs>
+  <Tab title="Pre-built Kits">
+    **Characteristics:**
+    - Already assembled at the warehouse
+    - Child units not available for individual sale
+    - Faster processing and shipping
+    - Single inventory tracking unit
+    
+    **Best for:**
+    - Gift sets
+    - Promotional bundles
+    - Pre-configured packages
+  </Tab>
+  <Tab title="Kit-to-Ship">
+    **Characteristics:**
+    - Assembled when orders arrive
+    - Child units remain available individually
+    - More flexible inventory management
+    - Component-level tracking
+    
+    **Best for:**
+    - Custom configurations
+    - Build-to-order products
+    - Flexible bundles
+  </Tab>
+</Tabs>
+
+#### Kit SKU Example
+
+```json
+{
+  "customer_identifier": "kit00001",
+  "customer_bar_code": "1234567890",
+  "brand_name": "Freddie's",
+  "product_name": "Shirt and Pants Combo",
+  "product_category": "Apparel",
+  "product_description": "Complete outfit kit",
+  "is_kit": true,
+  "kit_skus": [
+    {
+      "customer_identifier": "shirt-001",
+      "quantity": 1
+    },
+    {
+      "customer_identifier": "pants-001", 
+      "quantity": 1
+    }
+  ],
+  "dim_weight": 1.25,
+  "dim_length": 12,
+  "dim_width": 10,
+  "dim_height": 3
+}
+```
+
+### Pick Strategies
+
+Control how inventory is allocated using pick strategies:
+
+<CardGroup cols={3}>
+  <Card
+    title="FIFO"
+    icon="arrow-right"
+  >
+    **First In, First Out**
+    
+    Oldest inventory picked first. Default for most products.
+  </Card>
+  <Card
+    title="FEFO"
+    icon="calendar"
+  >
+    **First Expired, First Out**
+    
+    Products closest to expiration picked first. Ideal for perishables.
+  </Card>
+  <Card
+    title="LIFO"
+    icon="arrow-left"
+  >
+    **Last In, First Out**
+    
+    Newest inventory picked first. Useful for fashion or seasonal items.
+  </Card>
+</CardGroup>
+
+### Barcode Management
+
+SKUs support comprehensive barcode management:
+
+<Accordion title="Primary Barcodes">
+  **customer_bar_code**: Primary customer-assigned barcode
+  
+  **vendor_bar_code**: Vendor's original barcode
+  
+  Both are indexed for fast lookup and must be unique system-wide.
+</Accordion>
+
+<Accordion title="Additional Barcodes">
+  **bar_codes**: Array of additional barcodes
+  
+  ```json
+  {
+    "bar_codes": [
+      "85962198623",
+      "3459189485324", 
+      "UPC123456789"
+    ]
+  }
+  ```
+  
+  Useful for:
+  - Multiple UPC codes
+  - Regional barcode variations
+  - Legacy system compatibility
+</Accordion>
+
+## Data Validation
+
+### Required Field Validation
+
+<Warning>
+Missing required fields will result in validation errors. Ensure all required fields are provided for successful SKU creation.
+</Warning>
+
+Common validation errors:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Required field missing",
+    "details": {
+      "field": "customer_identifier",
+      "value": null
+    }
+  }
+}
+```
+
+### Unique Constraints
+
+<Steps>
+  <Step title="Customer Identifier">
+    Must be unique within your account scope
+  </Step>
+  <Step title="Barcodes">
+    All barcodes must be globally unique across the system
+  </Step>
+  <Step title="Vendor Style">
+    Should be unique within brand for best practices
+  </Step>
+</Steps>
+
+## Best Practices
+
+### SKU Creation
+
+<CardGroup cols={2}>
+  <Card
+    title="Batch Operations"
+    icon="layer-group"
+  >
+    Create multiple SKUs in single API calls for efficiency
+  </Card>
+  <Card
+    title="Complete Data"
+    icon="check-circle"
+  >
+    Provide comprehensive product information upfront
+  </Card>
+  <Card
+    title="Consistent Naming"
+    icon="font"
+  >
+    Use consistent naming conventions for easier management
+  </Card>
+  <Card
+    title="Accurate Dimensions"
+    icon="ruler-combined"
+  >
+    Ensure precise dimensions for shipping calculations
+  </Card>
+</CardGroup>
+
+### Performance Optimization
+
+1. **Use Summary Lists**: Start with `list_type=summary` for browsing
+2. **Specific Queries**: Filter by `cid` array for targeted retrieval
+3. **Appropriate Limits**: Use reasonable `limit` values to avoid timeouts
+4. **Include Counts Sparingly**: Only use `include_counts=true` when needed
+
+## Error Handling
+
+Common error scenarios and solutions:
+
+<Accordion title="Duplicate Barcode">
+  **Error**: `DUPLICATE_BARCODE`
+  
+  **Cause**: Barcode already exists in system
+  
+  **Solution**: Use different barcode or update existing SKU
+</Accordion>
+
+<Accordion title="Invalid Dimensions">
+  **Error**: `INVALID_DIMENSIONS`
+  
+  **Cause**: Negative or zero values for required dimensions
+  
+  **Solution**: Provide positive numeric values for weight and dimensions
+</Accordion>
+
+<Accordion title="Kit Component Missing">
+  **Error**: `KIT_COMPONENT_NOT_FOUND`
+  
+  **Cause**: Kit references non-existent child SKU
+  
+  **Solution**: Create child SKUs before creating kit SKU
+</Accordion>
+
+## Next Steps
+
+After setting up your catalog, proceed to:
+
+- [Inventory Management](/api/inventory) for stock tracking
+- [Order Management](/api/orders) for order processing
+- [Inbound Shipments](/api/inbound-shipments) for receiving inventory

@@ -1,0 +1,99 @@
+---
+title: 'Ship Order'
+description: 'Simulate order fulfillment and shipping (Sandbox only)'
+api: 'POST /data_factory/shipOrder'
+---
+
+Simulate order fulfillment and shipping with optional shorts and multi-shipment support.
+
+<Warning>
+DataFactory is only available in the sandbox environment.
+</Warning>
+
+## Request Body
+
+<ParamField body="order_customer_id" type="string" required>
+  Customer order identifier to ship.
+</ParamField>
+
+<ParamField body="shorts" type="array">
+  Array of SKU customer identifiers to short (not fulfill).
+</ParamField>
+
+<ParamField body="number_of_shipments" type="integer" default="1">
+  Number of separate shipments to create for the order.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/data_factory/shipOrder" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[{
+    "order_customer_id": "12345",
+    "shorts": ["sku1", "sku2"],
+    "number_of_shipments": 2
+  }]'
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/data_factory/shipOrder"
+response = requests.post(url,
+    headers={"Authorization": "Bearer your_jwt_token"},
+    json=[{
+        "order_customer_id": "12345",
+        "shorts": ["sku1", "sku2"],
+        "number_of_shipments": 2
+    }])
+```
+
+```javascript JavaScript
+await fetch('https://app.masonhub.co/{account}/api/v1/data_factory/shipOrder', {
+  method: 'POST',
+  headers: {'Authorization': 'Bearer your_jwt_token', 'Content-Type': 'application/json'},
+  body: JSON.stringify([{
+    order_customer_id: "12345",
+    shorts: ["sku1", "sku2"],
+    number_of_shipments: 2
+  }])
+});
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "success": true,
+  "data": [{
+    "order_customer_id": "12345",
+    "status": "fulfilled",
+    "shipments": [
+      {"tracking_number": "1Z999AA10123456784", "carrier": "UPS"},
+      {"tracking_number": "1Z999AA10123456785", "carrier": "UPS"}
+    ]
+  }]
+}
+```
+</ResponseExample>
+
+## What This Does
+
+<Steps>
+  <Step title="Change Status">Order status changes to 'fulfilled'</Step>
+  <Step title="Create Shipments">Creates shipment records with tracking numbers</Step>
+  <Step title="Handle Shorts">Specified SKUs are marked as shorted</Step>
+  <Step title="Trigger Callbacks">Generates **orderEvent** callbacks</Step>
+</Steps>
+
+## Testing Scenarios
+
+<CardGroup cols={2}>
+  <Card title="Multi-Shipment" icon="boxes-stacked">
+    Test split order fulfillment across multiple packages
+  </Card>
+  <Card title="Shortage Handling" icon="triangle-exclamation">
+    Test backorder and cancellation workflows
+  </Card>
+</CardGroup>

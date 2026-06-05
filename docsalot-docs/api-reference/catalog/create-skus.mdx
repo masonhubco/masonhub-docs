@@ -1,0 +1,344 @@
+---
+title: 'Create SKUs'
+description: 'Add new SKUs to the Item Master catalog'
+api: 'POST /skus'
+---
+
+Create one or more SKUs in the MasonHub catalog system. SKUs are the foundation of your product catalog and contain all the information needed for storage, fulfillment, and shipping.
+
+<Note>
+SKUs can be created individually or in batches. For large catalog uploads, consider batching up to 100 SKUs per request.
+</Note>
+
+## Request Body
+
+The request body accepts an array of SKU objects. Each SKU object supports the following fields:
+
+### Required Fields
+
+<ParamField body="customer_identifier" type="string" required>
+  Unique customer SKU identifier. This is your primary reference for the SKU.
+</ParamField>
+
+<ParamField body="customer_bar_code" type="string" required>
+  Primary customer-assigned barcode for warehouse scanning.
+</ParamField>
+
+<ParamField body="vendor_style" type="string" required>
+  Vendor style code. Must be 1-40 characters.
+</ParamField>
+
+<ParamField body="brand_name" type="string" required>
+  Brand name for the product.
+</ParamField>
+
+<ParamField body="product_name" type="string" required>
+  Product name/title.
+</ParamField>
+
+<ParamField body="product_category" type="string" required>
+  Product category classification (e.g., "Apparel", "Electronics").
+</ParamField>
+
+<ParamField body="dim_weight" type="number" required>
+  Weight in pounds.
+</ParamField>
+
+<ParamField body="dim_length" type="number" required>
+  Length in inches.
+</ParamField>
+
+<ParamField body="dim_width" type="number" required>
+  Width in inches.
+</ParamField>
+
+<ParamField body="dim_height" type="number" required>
+  Height in inches.
+</ParamField>
+
+### Optional Fields
+
+<ParamField body="vendor_bar_code" type="string">
+  Vendor's original barcode.
+</ParamField>
+
+<ParamField body="bar_codes" type="string[]">
+  Additional barcodes for the SKU. Useful for multiple UPC codes or regional variations.
+</ParamField>
+
+<ParamField body="product_sub_category" type="string">
+  Product subcategory for finer classification.
+</ParamField>
+
+<ParamField body="product_description" type="string">
+  Detailed product description.
+</ParamField>
+
+<ParamField body="dim_volume" type="number">
+  Volume in cubic inches. Calculated automatically if not provided.
+</ParamField>
+
+<ParamField body="unit_cost" type="number">
+  Unit cost for the SKU.
+</ParamField>
+
+<ParamField body="price" type="number">
+  Retail price for the SKU.
+</ParamField>
+
+<ParamField body="pick_style" type="string">
+  Pick strategy for inventory allocation. Options:
+  - `FIFO` - First In, First Out (default)
+  - `FEFO` - First Expired, First Out
+  - `LIFO` - Last In, First Out
+</ParamField>
+
+<ParamField body="special_instructions" type="string">
+  Special handling instructions for warehouse operations.
+</ParamField>
+
+<ParamField body="is_kit" type="boolean">
+  Whether this SKU is a kit composed of multiple child SKUs.
+</ParamField>
+
+<ParamField body="kit_skus" type="array">
+  Array of component SKUs for kits. Each item requires `customer_identifier` and `quantity`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/skus" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "pants4523",
+      "customer_bar_code": "2345687902",
+      "vendor_bar_code": "39485627389",
+      "bar_codes": ["85962198623", "3459189485324"],
+      "vendor_style": "FP-pants",
+      "brand_name": "Freddie'\''s Pants",
+      "product_name": "Fancy Pants",
+      "product_category": "Apparel",
+      "product_sub_category": "pants",
+      "product_description": "Very fancy pants with stripes",
+      "dim_weight": 0.75,
+      "dim_length": 4,
+      "dim_width": 2.2,
+      "dim_height": 0.5,
+      "unit_cost": 80,
+      "price": 160
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/skus"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    {
+        "customer_identifier": "pants4523",
+        "customer_bar_code": "2345687902",
+        "vendor_bar_code": "39485627389",
+        "bar_codes": ["85962198623", "3459189485324"],
+        "vendor_style": "FP-pants",
+        "brand_name": "Freddie's Pants",
+        "product_name": "Fancy Pants",
+        "product_category": "Apparel",
+        "product_sub_category": "pants",
+        "product_description": "Very fancy pants with stripes",
+        "dim_weight": 0.75,
+        "dim_length": 4,
+        "dim_width": 2.2,
+        "dim_height": 0.5,
+        "unit_cost": 80,
+        "price": 160
+    }
+]
+
+response = requests.post(url, headers=headers, json=data)
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/skus', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      customer_identifier: "pants4523",
+      customer_bar_code: "2345687902",
+      vendor_bar_code: "39485627389",
+      bar_codes: ["85962198623", "3459189485324"],
+      vendor_style: "FP-pants",
+      brand_name: "Freddie's Pants",
+      product_name: "Fancy Pants",
+      product_category: "Apparel",
+      product_sub_category: "pants",
+      product_description: "Very fancy pants with stripes",
+      dim_weight: 0.75,
+      dim_length: 4,
+      dim_width: 2.2,
+      dim_height: 0.5,
+      unit_cost: 80,
+      price: 160
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 1,
+  "records_processed": 1,
+  "records_failed": 0,
+  "records_succeeded": 1,
+  "results": [
+    {
+      "system_id": "550e8400-e29b-41d4-a716-446655440000",
+      "customer_identifier": "pants4523",
+      "status": "success"
+    }
+  ]
+}
+```
+
+```json 400 Validation Error
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Required field missing",
+    "details": {
+      "field": "customer_identifier",
+      "value": null
+    }
+  }
+}
+```
+
+```json 409 Duplicate Error
+{
+  "error": {
+    "code": "DUPLICATE_BARCODE",
+    "message": "Barcode already exists in system",
+    "details": {
+      "field": "customer_bar_code",
+      "value": "2345687902",
+      "existing_sku": "shirts450293"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Kit SKUs
+
+MasonHub supports kit SKUs - parent SKUs composed of multiple child SKUs. There are two types:
+
+<Tabs>
+  <Tab title="Pre-built Kits">
+    **Characteristics:**
+    - Already assembled at the warehouse
+    - Child units not available for individual sale
+    - Faster processing and shipping
+    - Single inventory tracking unit
+    
+    **Best for:** Gift sets, promotional bundles, pre-configured packages
+  </Tab>
+  <Tab title="Kit-to-Ship">
+    **Characteristics:**
+    - Assembled when orders arrive
+    - Child units remain available individually
+    - More flexible inventory management
+    - Component-level tracking
+    
+    **Best for:** Custom configurations, build-to-order products, flexible bundles
+  </Tab>
+</Tabs>
+
+### Kit SKU Example
+
+```json
+{
+  "customer_identifier": "kit00001",
+  "customer_bar_code": "1234567890",
+  "vendor_style": "KIT-outfit",
+  "brand_name": "Freddie's",
+  "product_name": "Shirt and Pants Combo",
+  "product_category": "Apparel",
+  "product_description": "Complete outfit kit",
+  "is_kit": true,
+  "kit_skus": [
+    {
+      "customer_identifier": "shirt-001",
+      "quantity": 1
+    },
+    {
+      "customer_identifier": "pants-001",
+      "quantity": 1
+    }
+  ],
+  "dim_weight": 1.25,
+  "dim_length": 12,
+  "dim_width": 10,
+  "dim_height": 3
+}
+```
+
+<Warning>
+Child SKUs must exist in the catalog before creating a kit SKU that references them.
+</Warning>
+
+## Barcode Management
+
+SKUs support multiple barcode associations:
+
+| Field | Description |
+|-------|-------------|
+| `customer_bar_code` | Primary customer barcode (required, must be unique) |
+| `vendor_bar_code` | Vendor's barcode (optional, must be unique) |
+| `bar_codes` | Array of additional barcodes (all must be unique) |
+
+<Warning>
+All barcodes must be globally unique across the system. The API will return a 409 error if duplicate barcodes are detected.
+</Warning>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Batch Operations" icon="layer-group">
+    Create multiple SKUs in single API calls for efficiency. Up to 100 SKUs per request.
+  </Card>
+  <Card title="Complete Data" icon="check-circle">
+    Provide comprehensive product information upfront to avoid update calls later.
+  </Card>
+  <Card title="Consistent Naming" icon="font">
+    Use consistent naming conventions for `customer_identifier` for easier management.
+  </Card>
+  <Card title="Accurate Dimensions" icon="ruler-combined">
+    Ensure precise dimensions for accurate shipping calculations and storage allocation.
+  </Card>
+</CardGroup>
+
+
+## Next Steps
+
+After setting up your catalog, proceed to:
+
+- [Inventory Management](/api/inventory) for stock tracking
+- [Order Management](/api/orders) for order processing
+- [Inbound Shipments](/api/inbound-shipments) for receiving inventory

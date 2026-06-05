@@ -1,0 +1,168 @@
+---
+title: 'Sandbox Testing'
+description: 'Complete testing guidelines for validating your MasonHub integration'
+---
+
+Comprehensive testing in the sandbox environment is essential before promoting your integration to production. This section outlines the testing approach and key scenarios to validate.
+
+<Warning>
+**Important**: All clients must complete sandbox testing before promoting their integration to production.
+</Warning>
+
+## Testing Environment
+
+### Sandbox Access
+
+- **URL**: [https://sandbox.masonhub.co](https://sandbox.masonhub.co)
+- **API Base**: `https://sandbox-api.masonhub.co`
+- **Purpose**: Safe testing environment with isolated data
+
+### Test Data Management
+
+<Note>
+Use the [Data Factory](https://docs.masonhub.co/api/v1#tag/DataFactory) to generate realistic test data for production simulations including shipments, inbound shipment receipts, and more.
+</Note>
+
+## Core Testing Areas
+
+### 1. SKU Synchronization Testing
+
+<Accordion title="Basic SKU Operations">
+  **Test Cases:**
+  - Create new SKUs with complete attribute data
+  - Update existing SKU information
+  - Handle SKU deactivation/reactivation
+  - Validate SKU data formatting and requirements
+</Accordion>
+
+<Accordion title="Complex SKU Scenarios">
+  **Bundle Products:**
+  - Multi-item bundles with individual SKU components
+  - Bundle inventory allocation and tracking
+  - Bundle splitting during fulfillment
+  
+  **International Products:**
+  - Products with international shipping data
+  - Harmonized tariff codes and customs information
+  - Country of origin specifications
+  
+  **ORMD Products:**
+  - Hazardous material classifications
+  - Special handling requirements
+  - Shipping restriction validation
+</Accordion>
+
+### 2. Order Lifecycle Testing
+
+<Steps>
+  <Step title="Order Creation">
+    Test various order scenarios:
+    - Single item orders
+    - Multi-item orders
+    - Orders with special handling requirements
+    - International orders with customs data
+  </Step>
+  <Step title="Ship Method Mapping">
+    Validate all configured shipping methods:
+    - Standard ground shipping
+    - Express delivery options
+    - International shipping services
+    - Will-call pickups
+  </Step>
+  <Step title="VAS Tags">
+    Test value-added services:
+    - Gift wrapping
+    - Custom packaging
+    - Special handling instructions
+  </Step>
+  <Step title="Backorder Handling">
+    If applicable to your business:
+    - Partial inventory scenarios
+    - Backorder creation and tracking
+    - Backorder fulfillment workflows
+  </Step>
+</Steps>
+
+### 3. Inbound Shipment Testing
+
+<Accordion title="Full Lifecycle Testing">
+  **Creation to Receipt:**
+  - Create inbound shipment schedules
+  - Track receiving progress
+  - Handle receipt discrepancies
+  - Update inventory levels post-receipt
+  
+  **Exception Scenarios:**
+  - Partial receipts
+  - Overage situations
+  - Damaged goods handling
+  - Missing item resolution
+</Accordion>
+
+### 4. Fulfillment Scenarios
+
+<CardGroup cols={3}>
+  <Card
+    title="Complete Fulfillment"
+    icon="check-circle"
+  >
+    Orders fulfilled exactly as requested
+  </Card>
+  <Card
+    title="Split Fulfillment"
+    icon="split"
+  >
+    Orders shipping in multiple packages
+  </Card>
+  <Card
+    title="Short Fulfillment"
+    icon="exclamation-circle"
+  >
+    Orders with insufficient inventory
+  </Card>
+</CardGroup>
+
+### 5. Inventory Snapshot Testing
+
+- **Real-time Updates**: Verify inventory changes reflect immediately
+- **Allocation Tracking**: Test committed vs. available inventory
+- **Multi-location**: If applicable, test inventory across multiple warehouses
+
+## Data Synchronization Testing
+
+### Polling Method Testing
+
+<Tabs>
+  <Tab title="GET Endpoints">
+    Test periodic polling of:
+    - Order status updates
+    - Shipment tracking information
+    - Inventory level changes
+    - Inbound receipt confirmations
+  </Tab>
+  <Tab title="Performance">
+    Validate:
+    - Response times under load
+    - Pagination handling
+    - Rate limit compliance
+    - Error recovery mechanisms
+  </Tab>
+</Tabs>
+
+### Webhook Testing
+
+<Tabs>
+  <Tab title="Event Registration">
+    - Configure callback URLs
+    - Test webhook authentication
+    - Validate event payload formats
+  </Tab>
+  <Tab title="Event Handling">
+    - Order status changes
+    - Shipment updates
+    - Inventory modifications
+    - Inbound receipt events
+  </Tab>
+</Tabs>
+
+Use [Data Factory](https://docs.masonhub.co/api/v1#tag/DataFactory) for production simulations of shipments, inbound shipment receipts etc.

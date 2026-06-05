@@ -1,0 +1,155 @@
+---
+title: 'Get Inventory Locations'
+description: 'Retrieve information about warehouse locations and their UUIDs'
+api: 'GET /{accountSlug}/inventory_locations'
+---
+
+Retrieve information about all warehouse and distribution center locations associated with your account. This endpoint returns location details including UUIDs needed for location-specific inventory queries.
+
+## Path Parameters
+
+<ParamField path="accountSlug" type="string" required>
+  Account slug identifying your MasonHub account.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://app.masonhub.co/your-account/api/v1/inventory_locations" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+account_slug = "your-account"
+url = f"https://app.masonhub.co/{account_slug}/api/v1/inventory_locations"
+headers = {
+    "Authorization": "Bearer your_jwt_token"
+}
+
+response = requests.get(url, headers=headers)
+data = response.json()
+```
+
+```javascript JavaScript
+const accountSlug = 'your-account';
+
+const response = await fetch(`https://app.masonhub.co/${accountSlug}/api/v1/inventory_locations`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "data": [
+    {
+      "id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+      "name": "Rancho Cucamonga",
+      "city": "Rancho Cucamonga",
+      "locale_code": "CA",
+      "address": "8595 Milliken Avenue, B102 Rancho Cucamonga, CA 91730"
+    },
+    {
+      "id": "af8cc627-de63-9061-3b9c-0119e0092e04",
+      "name": "Atlanta",
+      "city": "Atlanta",
+      "locale_code": "GA",
+      "address": "1234 Logistics Parkway, Atlanta, GA 30301"
+    }
+  ]
+}
+```
+
+```json 401 Unauthorized
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or expired authorization token"
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "ACCOUNT_NOT_FOUND",
+    "message": "Account with specified slug not found"
+  }
+}
+```
+</ResponseExample>
+
+## Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Unique identifier for the inventory location |
+| `name` | string | Human-readable location name |
+| `city` | string | City where the location is situated |
+| `locale_code` | string | State/province code (e.g., "CA", "GA") |
+| `address` | string | Full street address of the location |
+
+## Using Location IDs
+
+Location UUIDs returned by this endpoint are used in:
+
+<CardGroup cols={2}>
+  <Card title="Inventory Queries" icon="boxes-stacked">
+    Filter inventory by specific locations in `status_counts` responses.
+  </Card>
+  <Card title="Order Routing" icon="route">
+    Understand which distribution centers are available for order fulfillment.
+  </Card>
+  <Card title="Inbound Shipments" icon="truck">
+    Specify destination locations for inbound shipments.
+  </Card>
+  <Card title="Reporting" icon="chart-bar">
+    Break down inventory and fulfillment metrics by location.
+  </Card>
+</CardGroup>
+
+## Multi-Location Inventory
+
+When querying inventory via `GET /inventory`, the `status_counts` array includes location-specific breakdowns:
+
+```json
+{
+  "status_counts": [
+    {
+      "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+      "inventory_location_address": "MasonHub - Rancho Cucamonga | 8595 Milliken Avenue, B102",
+      "inventory_status": "available",
+      "quantity": 100
+    },
+    {
+      "inventory_location_id": "af8cc627-de63-9061-3b9c-0119e0092e04",
+      "inventory_location_address": "MasonHub - Atlanta | 1234 Logistics Parkway",
+      "inventory_status": "available",
+      "quantity": 75
+    }
+  ]
+}
+```
+
+Use the location IDs from this endpoint to correlate inventory data with specific warehouses.
+
+## Best Practices
+
+<Note>
+Cache location data locally since warehouse locations change infrequently. Refresh periodically (e.g., daily) to catch any new locations added to your account.
+</Note>
+
+<Accordion title="Location-Based Routing">
+  Understanding your available locations helps optimize order routing. Consider proximity to customers and inventory availability at each location when implementing fulfillment logic.
+</Accordion>
+
+<Accordion title="Inventory Visibility">
+  Use location IDs to build location-specific inventory dashboards. This helps identify inventory imbalances and optimize stock distribution across warehouses.
+</Accordion>
